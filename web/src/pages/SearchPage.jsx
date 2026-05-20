@@ -220,7 +220,7 @@ export default function SearchPage({ theme, setTheme }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {results.map(s => (
-                <Link key={s.id} to={s.slug ? `/articulo/${s.slug}` : `/articulo/${s.id}`} style={{
+                <Link key={s.id} to={s.slug ? `/${s.slug}` : `/${s.id}`} style={{
                   display: 'grid', gridTemplateColumns: '100px 1fr',
                   gap: 16, paddingBlock: 18, borderBottom: '1px solid var(--tt-line)',
                   textDecoration: 'none',

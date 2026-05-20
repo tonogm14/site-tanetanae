@@ -9,7 +9,7 @@ const TTImage = ({ tone, aspect = '1x1', style = {} }) => (
 );
 
 const StoryRow = ({ story, index, showImage = true }) => {
-  const href = story.slug ? `/articulo/${story.slug}` : `/articulo/${story.id}`;
+  const href = story.slug ? `/${story.slug}` : `/${story.id}`;
 
   return (
     <Link

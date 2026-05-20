@@ -183,6 +183,13 @@ export async function fetchMostRead() {
   }
 }
 
+// Fire-and-forget: registra una visita sin bloquear nada.
+// Falla silenciosamente si WordPress no responde.
+export function registerView(postId) {
+  if (!postId) return;
+  client.post(`/views/${postId}`).catch(() => {});
+}
+
 export async function searchPosts(query, page = 1) {
   if (!query || query.trim().length < 2) return { results: [], total: 0 };
   try {

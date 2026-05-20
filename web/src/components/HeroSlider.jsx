@@ -76,7 +76,7 @@ const HeroSlider = ({ stories = [] }) => {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 24 }}>
       <div style={{ position: 'relative', height: 560 }}>
-        <Link to={`/articulo/${main.slug || main.id}`} style={{ display: 'block', height: '100%' }}>
+        <Link to={`/${main.slug || main.id}`} style={{ display: 'block', height: '100%' }}>
           <HeroCard story={main} />
         </Link>
         {/* Slide dots */}

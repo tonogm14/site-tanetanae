@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import TTLogo from './TTLogo.jsx';
 import Icon from './Icon.jsx';
+import { SOCIALS } from '../lib/socials.js';
 
 const NAV = [
   { label: 'Inicio',            slug: '' },
@@ -53,9 +54,28 @@ const Header = ({ compact = false, activeCategory = '', theme, setTheme }) => {
             }
           </button>
         )}
-        <button className="tt-btn" style={{ paddingBlock: 8 }}>
-          <Icon name="whatsapp" size={14} /> Recibe noticias
-        </button>
+        {SOCIALS.length > 0 && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            {SOCIALS.map(({ name, url }) => (
+              <a
+                key={name}
+                href={url}
+                target="_blank" rel="noopener noreferrer"
+                title={name.charAt(0).toUpperCase() + name.slice(1)}
+                style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  border: '1px solid var(--tt-line-strong)',
+                  background: 'var(--tt-paper-2)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--tt-ink-muted)', textDecoration: 'none',
+                  transition: 'background 0.2s, color 0.2s',
+                }}
+              >
+                <Icon name={name} size={15} />
+              </a>
+            ))}
+          </div>
+        )}
       </div>
       <nav style={{
         display: 'flex', gap: 0, alignItems: 'stretch',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import UtilityStrip from '../components/UtilityStrip.jsx';
 import BreakingBar from '../components/BreakingBar.jsx';
@@ -100,7 +100,8 @@ export default function CategoryPage({ theme, setTheme }) {
   });
   const [totalPages, setTotalPages] = useState(1);
 
-  const catLabel = CAT_LABELS[slug] || slug;
+  const catLabel    = CAT_LABELS[slug] || slug;
+  const isFirstSlug = useRef(true);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -109,6 +110,9 @@ export default function CategoryPage({ theme, setTheme }) {
   }, []);
 
   useEffect(() => {
+    // Saltar el primer render: la página ya viene correcta desde la URL.
+    // Solo resetear cuando el usuario navega a otra categoría.
+    if (isFirstSlug.current) { isFirstSlug.current = false; return; }
     setPosts([]);
     setPage(1);
     setSearchParams({});
@@ -185,12 +189,42 @@ export default function CategoryPage({ theme, setTheme }) {
       </div>
 
       <section style={{ padding: isMobile ? '32px 16px' : '48px 40px', maxWidth: 1440, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: isMobile ? 32 : 56 }}>
-        <div>
-          {loading && posts.length === 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 28 }}>
-              {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+        <div style={{ position: 'relative' }}>
+          {/* Spinner de carga inicial */}
+          {loading && posts.length === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 20 }}>
+              <style>{`@keyframes tt-spin { to { transform: rotate(360deg); } }`}</style>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                border: '3px solid var(--tt-line-strong)',
+                borderTopColor: 'var(--tt-green)',
+                animation: 'tt-spin 0.75s linear infinite',
+              }} />
+              <span style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 13, color: 'var(--tt-ink-muted)', letterSpacing: '0.06em' }}>
+                Cargando noticias…
+              </span>
             </div>
-          ) : (
+          )}
+
+          {/* Overlay semitransparente al cambiar página */}
+          {loading && posts.length > 0 && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 10,
+              background: 'rgba(var(--tt-paper-rgb, 245,244,238), 0.7)',
+              backdropFilter: 'blur(2px)',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+              paddingTop: 60,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                border: '3px solid var(--tt-line-strong)',
+                borderTopColor: 'var(--tt-green)',
+                animation: 'tt-spin 0.75s linear infinite',
+              }} />
+            </div>
+          )}
+
+          {posts.length > 0 && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 28 }}>
                 {posts.map(post => (

@@ -152,7 +152,7 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
 
       {/* Hero card rotativo */}
       <section style={{ padding: 16 }}>
-        <Link to={hero.slug ? `/articulo/${hero.slug}` : '/'} style={{ display: 'block' }}>
+        <Link to={hero.slug ? `/${hero.slug}` : '/'} style={{ display: 'block' }}>
           <div style={{ position: 'relative', height: 420, borderRadius: 'var(--tt-r-lg)', overflow: 'hidden', background: 'var(--tt-ink)', color: 'white' }}>
             {hero.imgUrl
               ? <img src={hero.imgUrl} alt={hero.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -182,7 +182,7 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
       {/* Sub-hero */}
       <section style={{ padding: '0 16px 8px', display: 'flex', flexDirection: 'column' }}>
         {data.hero.slice(1, 3).map(s => (
-          <Link key={s.id} to={s.slug ? `/articulo/${s.slug}` : '/'} style={{
+          <Link key={s.id} to={s.slug ? `/${s.slug}` : '/'} style={{
             display: 'grid', gridTemplateColumns: '1fr 110px', gap: 14,
             paddingBlock: 14, borderBottom: '1px solid var(--tt-line)', textDecoration: 'none',
           }}>

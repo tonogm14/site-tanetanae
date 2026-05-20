@@ -9,11 +9,34 @@ import Ad from '../components/Ad.jsx';
 import Footer from '../components/Footer.jsx';
 import SectionHead from '../components/SectionHead.jsx';
 import Icon from '../components/Icon.jsx';
-import { fetchPost, fetchMostRead, fetchPosts, MOCK_DATA } from '../api/wordpress.js';
+import { fetchPost, fetchMostRead, fetchPosts, registerView, MOCK_DATA } from '../api/wordpress.js';
 
 const TTImage = ({ tone, aspect = '16x9', style = {} }) => (
   <div className={`tt-img tt-img--${tone || 'recientes'} tt-aspect-${aspect}`} style={{ width: '100%', ...style }} />
 );
+
+function fmtViews(n) {
+  if (!n) return null;
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000)    return `${(n / 1000).toFixed(1)}k`;
+  return n.toLocaleString('es-VE');
+}
+
+function buildShareUrls(title, url) {
+  const enc = encodeURIComponent;
+  return {
+    whatsapp: `https://wa.me/?text=${enc(title + ' ' + url)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
+    twitter:  `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
+  };
+}
+
+async function shareNative(title, url, onCopied) {
+  if (navigator.share) {
+    try { await navigator.share({ title, url }); return; } catch {}
+  }
+  try { await navigator.clipboard.writeText(url); onCopied(); } catch {}
+}
 
 export default function ArticlePage({ theme, setTheme }) {
   const { slug } = useParams();
@@ -23,7 +46,12 @@ export default function ArticlePage({ theme, setTheme }) {
   const [related, setRelated] = useState(MOCK_DATA.related);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [copied, setCopied] = useState(false);
   const wrapRef = useRef(null);
+
+  const articleUrl  = typeof window !== 'undefined' ? window.location.href : '';
+  const onCopied    = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const shareUrls   = buildShareUrls(a.title, articleUrl);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -55,10 +83,13 @@ export default function ArticlePage({ theme, setTheme }) {
       fetchPosts({ perPage: 3 }),
     ]).then(([articleResult, mostReadResult, relatedResult]) => {
       if (cancelled) return;
-      setArticle(articleResult.status === 'fulfilled' ? (articleResult.value || MOCK_DATA.article) : MOCK_DATA.article);
+      const art = articleResult.status === 'fulfilled' ? (articleResult.value || MOCK_DATA.article) : MOCK_DATA.article;
+      setArticle(art);
       if (mostReadResult.status === 'fulfilled') setMostRead(mostReadResult.value);
       if (relatedResult.status === 'fulfilled') setRelated(relatedResult.value.posts);
       setLoading(false);
+      // Registrar visita en WordPress (fire-and-forget, no bloquea nada)
+      registerView(art.id);
     });
 
     return () => { cancelled = true; };
@@ -121,7 +152,7 @@ export default function ArticlePage({ theme, setTheme }) {
           <div style={{ position: 'absolute', inset: 'auto 0 0 0', padding: '0 40px 56px', maxWidth: 1240, margin: '0 auto', left: 0, right: 0 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
               <span className="tt-chip" style={{ background: 'var(--tt-green-vivid)', color: 'var(--tt-ink)' }}>{a.cat}</span>
-              {a.kicker && <span className="tt-chip tt-chip--ghost" style={{ borderColor: 'rgba(255,255,255,0.4)', color: 'rgba(255,255,255,0.85)' }}>{a.kicker}</span>}
+              {a.kicker && a.kicker !== a.cat && <span className="tt-chip tt-chip--ghost" style={{ borderColor: 'rgba(255,255,255,0.4)', color: 'rgba(255,255,255,0.85)' }}>{a.kicker}</span>}
             </div>
             <h1 className="tt-headline" style={{ color: 'white', fontSize: 72, maxWidth: '20ch', lineHeight: 0.95, marginBottom: 32 }}>
               {a.title}
@@ -148,13 +179,29 @@ export default function ArticlePage({ theme, setTheme }) {
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Lectura</span>
                 <span>{a.readTime}</span>
               </div>
+              {fmtViews(a.views) && (
+                <>
+                  <span style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.2)' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Visitas</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Icon name="eye" size={13} /> {fmtViews(a.views)}
+                    </span>
+                  </div>
+                </>
+              )}
               <div style={{ display: 'flex', gap: 8 }}>
-                {['whatsapp', 'facebook', 'twitter'].map(n => (
-                  <button key={n} style={{
+                {[
+                  { n: 'whatsapp', href: shareUrls.whatsapp },
+                  { n: 'facebook', href: shareUrls.facebook },
+                  { n: 'twitter',  href: shareUrls.twitter  },
+                ].map(({ n, href }) => (
+                  <a key={n} href={href} target="_blank" rel="noopener noreferrer" style={{
                     width: 30, height: 30, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
                     color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  }}><Icon name={n} size={13} /></button>
+                    textDecoration: 'none',
+                  }}><Icon name={n} size={13} /></a>
                 ))}
               </div>
             </div>
@@ -169,13 +216,27 @@ export default function ArticlePage({ theme, setTheme }) {
               Compartir esta nota
             </span>
             <span style={{ width: 1, height: 28, background: 'var(--tt-line-strong)' }} />
-            {[{ n: 'whatsapp', c: 'var(--tt-green)' }, { n: 'facebook', c: 'var(--tt-ink)' }, { n: 'twitter', c: 'var(--tt-ink)' }, { n: 'share', c: 'var(--tt-ink)' }, { n: 'bookmark', c: 'var(--tt-ink)' }].map(({ n, c }) => (
-              <button key={n} style={{
+            {[
+              { n: 'whatsapp', c: '#25D366', href: shareUrls.whatsapp },
+              { n: 'facebook', c: '#1877F2', href: shareUrls.facebook },
+              { n: 'twitter',  c: '#000',    href: shareUrls.twitter  },
+            ].map(({ n, c, href }) => (
+              <a key={n} href={href} target="_blank" rel="noopener noreferrer" style={{
                 width: 44, height: 44, borderRadius: '50%', background: c,
                 color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: 'var(--tt-shadow-card)',
-              }}><Icon name={n} size={16} /></button>
+                boxShadow: 'var(--tt-shadow-card)', textDecoration: 'none',
+              }}><Icon name={n} size={16} /></a>
             ))}
+            <button
+              onClick={() => shareNative(a.title, articleUrl, onCopied)}
+              title={copied ? '¡Copiado!' : 'Copiar enlace'}
+              style={{
+                width: 44, height: 44, borderRadius: '50%', background: copied ? 'var(--tt-green)' : 'var(--tt-ink)',
+                color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'var(--tt-shadow-card)', border: 'none', cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+            ><Icon name="share" size={16} /></button>
           </div>
 
           {/* Main content */}
@@ -335,12 +396,15 @@ export default function ArticlePage({ theme, setTheme }) {
         </span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{a.author}</div>
-          <div style={{ fontSize: 11, color: 'var(--tt-ink-faint)' }}>{a.date} · {a.readTime}</div>
+          <div style={{ fontSize: 11, color: 'var(--tt-ink-faint)' }}>
+            {a.date} · {a.readTime}
+            {fmtViews(a.views) && <> · <Icon name="eye" size={11} style={{ verticalAlign: 'middle' }} /> {fmtViews(a.views)}</>}
+          </div>
         </div>
-        <button style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tt-green)', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <a href={shareUrls.whatsapp} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tt-green)', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
           <Icon name="whatsapp" size={16} />
-        </button>
-        <button style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tt-paper-2)', color: 'var(--tt-ink)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        </a>
+        <button onClick={() => shareNative(a.title, articleUrl, onCopied)} style={{ width: 36, height: 36, borderRadius: '50%', background: copied ? 'var(--tt-green)' : 'var(--tt-paper-2)', color: copied ? 'white' : 'var(--tt-ink)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
           <Icon name="share" size={15} />
         </button>
       </div>
@@ -391,7 +455,7 @@ export default function ArticlePage({ theme, setTheme }) {
         <SectionHead num="↳" title="Continúa" italic="leyendo" />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {related.slice(0, 3).map(s => (
-            <Link key={s.id} to={s.slug ? `/articulo/${s.slug}` : '/'} style={{
+            <Link key={s.id} to={s.slug ? `/${s.slug}` : '/'} style={{
               display: 'grid', gridTemplateColumns: '100px 1fr', gap: 12,
               paddingBlock: 14, borderBottom: '1px solid var(--tt-line)', textDecoration: 'none',
             }}>
@@ -414,14 +478,14 @@ export default function ArticlePage({ theme, setTheme }) {
 
       {/* Sticky bottom share bar */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 30, background: 'var(--tt-paper)', borderTop: '1px solid var(--tt-line)', padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center', boxShadow: '0 -4px 20px rgba(14,17,22,0.06)' }}>
-        <button style={{ flex: 1, height: 42, borderRadius: 'var(--tt-r-pill)', background: 'var(--tt-green)', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 500, fontSize: 13, border: 'none', cursor: 'pointer' }}>
+        <a href={shareUrls.whatsapp} target="_blank" rel="noopener noreferrer" style={{ flex: 1, height: 42, borderRadius: 'var(--tt-r-pill)', background: '#25D366', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 500, fontSize: 13, textDecoration: 'none' }}>
           <Icon name="whatsapp" size={16} /> Compartir por WhatsApp
-        </button>
-        <button style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--tt-line-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        </a>
+        <a href={shareUrls.facebook} target="_blank" rel="noopener noreferrer" style={{ width: 42, height: 42, borderRadius: '50%', background: '#1877F2', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+          <Icon name="facebook" size={16} />
+        </a>
+        <button onClick={() => shareNative(a.title, articleUrl, onCopied)} style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--tt-line-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: copied ? 'var(--tt-green)' : 'transparent', color: copied ? 'white' : 'inherit', transition: 'all 0.2s', cursor: 'pointer' }}>
           <Icon name="share" size={16} />
-        </button>
-        <button style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--tt-line-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="bookmark" size={16} />
         </button>
       </div>
     </div>

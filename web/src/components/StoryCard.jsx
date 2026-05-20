@@ -10,7 +10,7 @@ const TTImage = ({ tone, aspect = '16x9', style = {} }) => (
 
 const StoryCard = ({ story, size = 'md', showExcerpt = true }) => {
   const titleSize = size === 'lg' ? 28 : size === 'sm' ? 17 : 22;
-  const href = story.slug ? `/articulo/${story.slug}` : `/articulo/${story.id}`;
+  const href = story.slug ? `/${story.slug}` : `/${story.id}`;
 
   return (
     <Link to={href} className="tt-card-link" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

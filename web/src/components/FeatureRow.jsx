@@ -9,7 +9,7 @@ const TTImage = ({ tone, aspect = '4x3', style = {} }) => (
 );
 
 const FeatureRow = ({ story }) => {
-  const href = story.slug ? `/articulo/${story.slug}` : `/articulo/${story.id}`;
+  const href = story.slug ? `/${story.slug}` : `/${story.id}`;
 
   return (
     <Link

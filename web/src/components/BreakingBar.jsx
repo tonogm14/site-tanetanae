@@ -60,7 +60,7 @@ const BreakingBar = ({ items = [] }) => {
               textOverflow: 'ellipsis',
             }}>
               {obj.slug
-                ? <Link to={`/articulo/${obj.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{obj.title}</Link>
+                ? <Link to={`/${obj.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{obj.title}</Link>
                 : obj.title
               }
             </div>

@@ -74,7 +74,7 @@ export const SucesosBlock = ({ posts = [], loading = false }) => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.45fr 1fr', gap: 36 }}>
         {/* Lead */}
-        <Link to={`/articulo/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Link to={`/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden', marginBottom: 16, aspectRatio: '3/2' }}>
             <PostImg post={main} />
           </div>
@@ -89,7 +89,7 @@ export const SucesosBlock = ({ posts = [], loading = false }) => {
         {/* Secondary list */}
         <div style={{ borderLeft: '1px solid var(--tt-line)', paddingLeft: 24 }}>
           {rest.slice(0, 4).map((s, i) => (
-            <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
               <article style={{
                 display: 'grid', gridTemplateColumns: '88px 1fr', gap: 14,
                 paddingBottom: 16, marginBottom: 16,
@@ -166,7 +166,7 @@ export const DeportesBlock = ({ posts = [], loading = false }) => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.45fr 1fr', gap: 36 }}>
         {/* Lead */}
-        <Link to={`/articulo/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Link to={`/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden', marginBottom: 16, aspectRatio: '3/2' }}>
             <PostImg post={lead} />
           </div>
@@ -181,7 +181,7 @@ export const DeportesBlock = ({ posts = [], loading = false }) => {
         {/* 2×2 grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignContent: 'start' }}>
           {more.slice(0, 4).map(s => (
-            <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
               <article>
                 <div style={{ borderRadius: 6, overflow: 'hidden', marginBottom: 10, aspectRatio: '16/9' }}>
                   <PostImg post={s} />
@@ -269,7 +269,7 @@ export const PueblosDelDeltaBlock = ({ posts = [], loading = false }) => {
             )}
 
             <span style={{ flex: 1 }} />
-            <Link to={`/articulo/${main.slug}`} style={{
+            <Link to={`/${main.slug}`} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '10px 20px', borderRadius: 'var(--tt-r-pill)',
               background: '#C48168', color: '#1A1410',
@@ -283,7 +283,7 @@ export const PueblosDelDeltaBlock = ({ posts = [], loading = false }) => {
           {/* Right: next 3 stories stacked */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {more.slice(0, 3).map((s, i) => (
-              <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <article style={{
                   display: 'grid', gridTemplateColumns: '80px 1fr', gap: 14,
                   paddingBlock: 18,
@@ -360,7 +360,7 @@ const CountryColumn = ({ country, subtitle, colors, stories = [], categorySlug }
       </header>
 
       {/* Lead */}
-      <Link to={`/articulo/${lead.slug}`} className="tt-card-link" style={{ display: 'block', padding: '20px 20px 18px', textDecoration: 'none', color: 'inherit' }}>
+      <Link to={`/${lead.slug}`} className="tt-card-link" style={{ display: 'block', padding: '20px 20px 18px', textDecoration: 'none', color: 'inherit' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 16 }}>
           <div style={{ borderRadius: 6, overflow: 'hidden', aspectRatio: '1/1' }}>
             <PostImg post={lead} />
@@ -382,7 +382,7 @@ const CountryColumn = ({ country, subtitle, colors, stories = [], categorySlug }
       {more.length > 0 && (
         <div style={{ borderTop: '1px dashed var(--tt-line)' }}>
           {more.slice(0, 3).map((s, i) => (
-            <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{
+            <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{
               display: 'grid', gridTemplateColumns: '64px 1fr',
               gap: 14, padding: '13px 20px',
               borderBottom: i < Math.min(more.length, 3) - 1 ? '1px dashed var(--tt-line)' : 'none',
@@ -473,7 +473,7 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
         <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Sucesos</h2>
       </div>
 
-      <Link to={`/articulo/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 18 }}>
+      <Link to={`/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 18 }}>
         <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden', marginBottom: 12, aspectRatio: '16/9' }}>
           <PostImg post={main} />
         </div>
@@ -485,7 +485,7 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
       </Link>
 
       {rest.slice(0, 3).map(s => (
-        <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{
+        <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{
           display: 'grid', gridTemplateColumns: '92px 1fr', gap: 12,
           paddingBlock: 14, borderTop: '1px solid var(--tt-line)',
           alignItems: 'start', textDecoration: 'none', color: 'inherit',
@@ -528,7 +528,7 @@ export const DeportesMobile = ({ posts = [], loading = false }) => {
         </Link>
       </div>
 
-      <Link to={`/articulo/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 14 }}>
+      <Link to={`/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 14 }}>
         <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden', marginBottom: 12, aspectRatio: '16/9' }}>
           <PostImg post={lead} />
         </div>
@@ -540,7 +540,7 @@ export const DeportesMobile = ({ posts = [], loading = false }) => {
       </Link>
 
       {more.slice(0, 3).map(s => (
-        <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{
+        <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{
           display: 'grid', gridTemplateColumns: '92px 1fr', gap: 12,
           paddingBlock: 14, borderTop: '1px solid var(--tt-line)',
           textDecoration: 'none', color: 'inherit',
@@ -576,7 +576,7 @@ export const PueblosDelDeltaMobile = ({ posts = [], loading = false }) => {
         {main.date && (
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 10, marginBottom: 8 }}>{main.date}</div>
         )}
-        <Link to={`/articulo/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+        <Link to={`/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
           <h3 className="tt-headline" style={{ color: 'white', fontSize: 17, lineHeight: 1.2, marginBottom: 8 }}>{main.title}</h3>
           {main.excerpt && (
             <p style={{ fontSize: 13, lineHeight: 1.55, color: 'rgba(255,255,255,0.7)', marginBottom: 16 }}>{main.excerpt}</p>
@@ -595,7 +595,7 @@ export const PueblosDelDeltaMobile = ({ posts = [], loading = false }) => {
       {more.length > 0 && (
         <div style={{ paddingTop: 4 }}>
           {more.slice(0, 2).map(s => (
-            <Link key={s.id} to={`/articulo/${s.slug}`} className="tt-card-link" style={{
+            <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{
               display: 'grid', gridTemplateColumns: '92px 1fr', gap: 12,
               paddingBlock: 14, borderBottom: '1px solid var(--tt-line)',
               textDecoration: 'none', color: 'inherit',

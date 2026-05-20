@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { cacheMiddleware } = require('./src/middleware/cache');
+const { cacheMiddleware, registerRevalidator, setCache } = require('./src/middleware/cache');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -171,20 +171,14 @@ async function fetchBreakingTitles() {
   }
 }
 
-// ── GET /home — todos los bloques del home en UN solo request ──
-// Fetch paralelo de todas las secciones; caché de 10 minutos.
-app.get('/home', cacheMiddleware(600), async (req, res) => {
-  // Pre-resolver todos los IDs de categoría (rápido desde caché tras warm-up)
+// ── buildHomeData — lógica extraída para poder reutilizarla en pre-warm y SWR ──
+async function buildHomeData() {
   const allSlugs = [
     'noticias-recientes', 'recientes-b', 'recientes-c', 'centrales', 'central-2',
-    'sucesos', 'deportes', 'indigenas', 'trinidad-y-tobago', 'videos',
-    'notificaciones',
+    'sucesos', 'deportes', 'indigenas', 'trinidad-y-tobago', 'videos', 'notificaciones',
   ];
   await Promise.all(allSlugs.map(slug => getCategoryId(slug)));
 
-  // Fetch centrales una sola vez y dividir por posición:
-  // - masNoticias    = posts 1, 2, 3  (los 3 más recientes de centrales)
-  // - fueronNoticias = posts 4 en adelante (los que "bajaron" del bloque principal)
   const [breaking, hero, centralesAll, sucesos, deportes, indigena, trinidad, video, mostRead, guyana] = await Promise.allSettled([
     fetchBreakingTitles(),
     fetchSection({ perPage: 5,  categorySlug: 'noticias-recientes' }),
@@ -201,7 +195,6 @@ app.get('/home', cacheMiddleware(600), async (req, res) => {
   const ok = r => r.status === 'fulfilled' ? r.value : [];
   const allCentrales = ok(centralesAll);
 
-  // Exponer solo categorías de contenido público (excluir las de curaduría)
   const categories = Array.from(catIdCache.entries())
     .filter(([slug]) => !HIDDEN_CAT_SLUGS.has(slug))
     .map(([slug, info]) => ({
@@ -211,12 +204,12 @@ app.get('/home', cacheMiddleware(600), async (req, res) => {
       color: `var(--tt-img--${slug})`,
     }));
 
-  res.json({
+  return {
     breaking:       ok(breaking),
     hero:           ok(hero),
-    centrales:      allCentrales.slice(0, 3),   // los 3 más recientes
-    masNoticias:    allCentrales.slice(0, 3),   // misma data, display compacto en sidebar
-    fueronNoticias: allCentrales.slice(3),      // del 4to en adelante
+    centrales:      allCentrales.slice(0, 3),
+    masNoticias:    allCentrales.slice(0, 3),
+    fueronNoticias: allCentrales.slice(3),
     sucesos:        ok(sucesos),
     deportes:       ok(deportes),
     indigena:       ok(indigena),
@@ -225,7 +218,16 @@ app.get('/home', cacheMiddleware(600), async (req, res) => {
     video:          ok(video),
     mostRead:       ok(mostRead),
     categories,
-  });
+  };
+}
+
+// Registrar revalidador para stale-while-revalidate
+registerRevalidator('/home', buildHomeData);
+
+// ── GET /home — todos los bloques del home en UN solo request ──
+app.get('/home', cacheMiddleware(900), async (req, res) => {
+  const data = await buildHomeData();
+  res.json(data);
 });
 
 // ── GET /breaking ─────────────────────────────────────────
@@ -244,6 +246,56 @@ app.get('/hero', cacheMiddleware(120), async (req, res) => {
 app.get('/most-read', cacheMiddleware(300), async (req, res) => {
   const posts = await fetchSection({ perPage: 5, orderby: 'comment_count' });
   res.json(posts);
+});
+
+// ── POST /views/:id — incremento atómico via WordPress ───────────────────────
+// El frontend llama esto fire-and-forget al cargar un artículo.
+// No se cachea — cada visita debe llegar a WordPress.
+app.post('/views/:id', async (req, res) => {
+  try {
+    const { data } = await axios.post(
+      `${WP_BASE}/wp-json/tt/v1/view/${req.params.id}`,
+      {},
+      { timeout: 5000 }
+    );
+    res.json(data);
+  } catch {
+    // Si WordPress falla, responder OK de todas formas — no es crítico
+    res.json({ views: 0 });
+  }
+});
+
+// ── Sitemap proxy — forwards Yoast WP sitemaps (auto-updates with every new post) ──
+// WP_BASE: where WordPress lives after the domain moves to Railway (e.g. cms.tanetanae.com)
+// SITE_URL: the public domain of the new site (used to rewrite <loc> URLs in the sitemap)
+const WP_BASE  = (process.env.WP_BASE  || 'https://www.tanetanae.com').replace(/\/$/, '');
+const SITE_URL = (process.env.SITE_URL || 'https://www.tanetanae.com').replace(/\/$/, '');
+
+function proxySitemap(xml) {
+  // Replace every occurrence of the WP origin with the public site URL
+  // so Google sees tanetanae.com/slug instead of cms.tanetanae.com/slug
+  return xml.replaceAll(WP_BASE, SITE_URL);
+}
+
+app.get('/sitemap_index.xml', cacheMiddleware(3600), async (_req, res) => {
+  try {
+    const { data } = await axios.get(`${WP_BASE}/sitemap_index.xml`, { timeout: 12000 });
+    res.set('Content-Type', 'application/xml');
+    res.send(proxySitemap(data));
+  } catch {
+    res.status(502).send('<!-- sitemap unavailable -->');
+  }
+});
+
+// Matches /post-sitemap.xml, /post-sitemap2.xml, /category-sitemap.xml, /author-sitemap.xml, etc.
+app.get('/:name(\\w[\\w-]*\\.xml)', cacheMiddleware(3600), async (req, res) => {
+  try {
+    const { data } = await axios.get(`${WP_BASE}/${req.params.name}`, { timeout: 12000 });
+    res.set('Content-Type', 'application/xml');
+    res.send(proxySitemap(data));
+  } catch {
+    res.status(404).send('<!-- not found -->');
+  }
 });
 
 // ── Health check ──────────────────────────────────────────
@@ -267,5 +319,13 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, async () => {
   console.log(`Tane Tanae API → http://localhost:${PORT}`);
   console.log(`WordPress API  → ${WP_API}`);
-  warmCategoryCache().catch(() => {});
+
+  // Pre-calentar caché al arrancar: el primer usuario recibe respuesta instantánea
+  warmCategoryCache()
+    .then(() => buildHomeData())
+    .then(data => {
+      setCache('/home', data, 900);
+      console.log('Cache pre-warmed: /home listo');
+    })
+    .catch(e => console.warn('Pre-warm falló:', e.message));
 });

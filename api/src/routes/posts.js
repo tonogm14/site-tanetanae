@@ -74,6 +74,7 @@ function mapPost(post) {
     link: post.link,
     content: post.content?.rendered || '',
     tags: (embedded['wp:term']?.[1] || []).map(t => t.name),
+    views: parseInt(post.meta?.contador_visitas || 0, 10),
   };
 }
 

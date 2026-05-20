@@ -15,7 +15,7 @@ const CardImage = ({ story }) => (
 /* ── Large card (top row) ── */
 const LargeCard = ({ story }) => (
   <Link
-    to={`/articulo/${story.slug || story.id}`}
+    to={`/${story.slug || story.id}`}
     style={{ display: 'block', borderRadius: 'var(--tt-r-lg)', overflow: 'hidden',
       position: 'relative', background: 'var(--tt-ink)', color: 'white', height: '100%' }}
     className="tt-hero-card"
@@ -69,7 +69,7 @@ const LargeCard = ({ story }) => (
 /* ── Small card (bottom row) ── */
 const SmallCard = ({ story }) => (
   <Link
-    to={`/articulo/${story.slug || story.id}`}
+    to={`/${story.slug || story.id}`}
     style={{ display: 'block', borderRadius: 'var(--tt-r-md)', overflow: 'hidden',
       position: 'relative', background: 'var(--tt-ink)', color: 'white', height: '100%' }}
     className="tt-hero-card"
@@ -93,7 +93,7 @@ const SmallCard = ({ story }) => (
         {story.cat}
       </span>
       <h3 className="tt-headline" style={{
-        fontSize: 'clamp(14px, 1.2vw, 17px)', lineHeight: 1.12, color: 'white',
+        fontSize: 'clamp(17px, 1.5vw, 22px)', lineHeight: 1.1, color: 'white',
         display: '-webkit-box', WebkitLineClamp: 3,
         WebkitBoxOrient: 'vertical', overflow: 'hidden',
       }}>
