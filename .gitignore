@@ -1,0 +1,19 @@
+node_modules/
+web/node_modules/
+api/node_modules/
+mobile/node_modules/
+
+# Build output
+web/dist/
+api/dist/
+
+# Env files (Railway usa sus propias variables de entorno)
+.env
+api/.env
+web/.env
+web/.env.local
+web/.env.production
+
+# Misc
+.DS_Store
+*.log
