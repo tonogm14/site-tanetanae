@@ -5,11 +5,11 @@ import Header from '../components/Header.jsx';
 import HeaderMobile from '../components/HeaderMobile.jsx';
 import StoryCard from '../components/StoryCard.jsx';
 import MostReadBox from '../components/MostReadBox.jsx';
-import Ad from '../components/Ad.jsx';
 import Footer from '../components/Footer.jsx';
 import SectionHead from '../components/SectionHead.jsx';
 import Icon from '../components/Icon.jsx';
-import { fetchPost, fetchMostRead, fetchPosts, registerView, MOCK_DATA } from '../api/wordpress.js';
+import { fetchPost, fetchMostRead, fetchPosts, registerView, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
+import BannerSlot from '../components/BannerSlot.jsx';
 
 const TTImage = ({ tone, aspect = '16x9', style = {} }) => (
   <div className={`tt-img tt-img--${tone || 'recientes'} tt-aspect-${aspect}`} style={{ width: '100%', ...style }} />
@@ -92,6 +92,7 @@ export default function ArticlePage({ theme, setTheme }) {
   const [progress, setProgress] = useState(0);
   const [copied, setCopied] = useState(false);
   const [zoomSrc, setZoomSrc] = useState(null);
+  const [banners, setBanners] = useState({});
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -124,6 +125,8 @@ export default function ArticlePage({ theme, setTheme }) {
     let cancelled = false;
     setLoading(true);
     window.scrollTo(0, 0);
+
+    fetchBanners().then(setBanners);
 
     Promise.allSettled([
       fetchPost(slug),
@@ -417,12 +420,14 @@ export default function ArticlePage({ theme, setTheme }) {
               ) : null;
             })()}
 
+            {/* Banner después del cuerpo */}
+            <BannerSlot banner={banners['articulo-cuerpo']} style={{ marginTop: 40 }} />
           </article>
 
           {/* Sidebar */}
           <aside style={{ display: 'flex', flexDirection: 'column', gap: 28, position: 'sticky', top: 80, alignSelf: 'start' }}>
             <MostReadBox stories={mostRead.slice(0, 4)} />
-            <Ad size="rectangle" />
+            <BannerSlot banner={banners['articulo-sidebar']} />
           </aside>
         </section>
 

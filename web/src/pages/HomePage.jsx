@@ -11,7 +11,6 @@ import SectionHead from '../components/SectionHead.jsx';
 import MostReadBox from '../components/MostReadBox.jsx';
 import WhatsappBox from '../components/WhatsappBox.jsx';
 import CategoriesBox from '../components/CategoriesBox.jsx';
-import Ad from '../components/Ad.jsx';
 import Footer from '../components/Footer.jsx';
 import {
   SucesosBlock, DeportesBlock,
@@ -47,11 +46,6 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
         <BannerSlot banner={banners['hero']} />
       </section>
 
-      {/* Leaderboard ad entre hero y Más Noticias */}
-      <section style={{ padding: '32px 40px 0', maxWidth: 1440, margin: '0 auto' }}>
-        <Ad size="leaderboard" />
-      </section>
-
       {/* Más Noticias — las 3 primeras notas de Centrales */}
       {(data.masNoticias || []).length > 0 && (
         <section style={{ padding: '40px 40px 0', maxWidth: 1440, margin: '0 auto' }}>
@@ -84,11 +78,6 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
           {/* Banner sucesos-deportes */}
           <BannerSlot banner={banners['sucesos-deportes']} />
 
-          {/* Ad entre deportes y fueron noticias */}
-          <div style={{ marginTop: 56 }}>
-            <Ad size="leaderboard" />
-          </div>
-
           {/* Fueron Noticias — fila de 3 tarjetas */}
           {(data.fueronNoticias || []).length > 0 && (
             <div style={{ marginTop: 56 }}>
@@ -107,8 +96,8 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
 
         {/* ── Sidebar ── */}
         <aside style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+          <BannerSlot banner={banners['home-sidebar-top']} />
           <MostReadBox stories={data.mostRead} />
-          <Ad size="rectangle" />
 
           <SeccionNoticias
             posts={data.video}
@@ -120,8 +109,8 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
           <BannerSlot banner={banners['videos']} />
 
           <WhatsappBox />
-          <Ad size="halfpage" />
           <CategoriesBox cats={data.categories} />
+          <BannerSlot banner={banners['home-sidebar-bottom']} />
         </aside>
       </section>
 
@@ -135,11 +124,6 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
       {/* Banner indigena */}
       <section style={{ padding: '0 40px', maxWidth: 1440, margin: '0 auto' }}>
         <BannerSlot banner={banners['indigena']} />
-      </section>
-
-      {/* Ad entre Pueblos y Frontera */}
-      <section style={{ padding: '56px 40px 0', maxWidth: 1440, margin: '0 auto' }}>
-        <Ad size="leaderboard" />
       </section>
 
       {/* Internacional Frontera */}
@@ -267,10 +251,6 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
       {/* Banner mas-noticias — mobile */}
       <BannerSlot banner={banners['mas-noticias']} style={{ margin: '16px 0', padding: '0 16px' }} />
 
-      <section style={{ padding: '20px 16px' }}>
-        <Ad size="mobile" />
-      </section>
-
       {/* Sucesos */}
       <section style={{ padding: '8px 16px' }}>
         <SucesosMobile posts={data.sucesos} loading={loading} />
@@ -286,10 +266,6 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
 
       <section style={{ padding: '32px 16px 8px' }}>
         <MostReadBox stories={data.mostRead.slice(0, 4)} />
-      </section>
-
-      <section style={{ padding: '20px 16px' }}>
-        <Ad size="mobile" />
       </section>
 
       {/* Banner fueron-noticias — mobile */}

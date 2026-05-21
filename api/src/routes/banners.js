@@ -6,7 +6,13 @@ const router = express.Router();
 const WP_BASE = (process.env.WP_BASE || 'https://www.tanetanae.com').replace(/\/$/, '');
 
 // Sections that can have banners (must match WordPress config)
-const BANNER_SECTIONS = ['hero', 'mas-noticias', 'sucesos-deportes', 'fueron-noticias', 'videos', 'indigena', 'internacional'];
+const BANNER_SECTIONS = [
+  'hero', 'mas-noticias', 'sucesos-deportes', 'fueron-noticias',
+  'videos', 'indigena', 'internacional',
+  'articulo-cuerpo', 'articulo-sidebar',
+  'home-sidebar-top', 'home-sidebar-bottom',
+  'categoria-top', 'categoria-bottom',
+];
 
 router.get('/', cacheMiddleware(120), async (_req, res) => {
   try {

@@ -6,10 +6,10 @@ import Header from '../components/Header.jsx';
 import HeaderMobile from '../components/HeaderMobile.jsx';
 import StoryCard from '../components/StoryCard.jsx';
 import MostReadBox from '../components/MostReadBox.jsx';
-import Ad from '../components/Ad.jsx';
+import BannerSlot from '../components/BannerSlot.jsx';
 import Footer from '../components/Footer.jsx';
 import { SkeletonCard } from '../components/LoadingSkeleton.jsx';
-import { fetchPosts, fetchBreaking, fetchMostRead, MOCK_DATA } from '../api/wordpress.js';
+import { fetchPosts, fetchBreaking, fetchMostRead, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
 
 const WINDOW = 9;
 
@@ -95,6 +95,7 @@ export default function CategoryPage({ theme, setTheme }) {
   const [breaking, setBreaking] = useState(MOCK_DATA.breaking);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
+  const [banners, setBanners] = useState({});
 
   // Página derivada directamente de la URL — nunca en estado local.
   // Así no hay setSearchParams programáticos que interfieran con el router.
@@ -116,6 +117,8 @@ export default function CategoryPage({ theme, setTheme }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+
+    fetchBanners().then(setBanners);
 
     Promise.allSettled([
       fetchPosts({ page, perPage: 12, category: slug }),
@@ -182,7 +185,11 @@ export default function CategoryPage({ theme, setTheme }) {
         <CategoryHeader />
       </div>
 
-      <section style={{ padding: isMobile ? '32px 16px' : '48px 40px', maxWidth: 1440, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: isMobile ? 32 : 56 }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 16px' : '0 40px' }}>
+        <BannerSlot banner={banners['categoria-top']} />
+      </div>
+
+      <section style={{ padding: isMobile ? '16px 16px' : '32px 40px', maxWidth: 1440, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: isMobile ? 32 : 56 }}>
         <div style={{ position: 'relative' }}>
           {/* Spinner de carga inicial */}
           {loading && posts.length === 0 && (
@@ -239,11 +246,14 @@ export default function CategoryPage({ theme, setTheme }) {
         {!isMobile && (
           <aside style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <MostReadBox stories={mostRead} />
-            <Ad size="rectangle" />
-            <Ad size="halfpage" />
+            <BannerSlot banner={banners['articulo-sidebar']} />
           </aside>
         )}
       </section>
+
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 16px' : '0 40px' }}>
+        <BannerSlot banner={banners['categoria-bottom']} />
+      </div>
 
       <Footer />
     </div>
