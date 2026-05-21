@@ -227,3 +227,12 @@ export async function searchPosts(query, page = 1) {
     return { results: [], total: 0 };
   }
 }
+
+export async function fetchBanners() {
+  try {
+    const { data } = await client.get('/banners');
+    return data || {};
+  } catch {
+    return {};
+  }
+}

@@ -19,10 +19,11 @@ import {
   SucesosMobile, DeportesMobile,
   PueblosDelDeltaMobile, InternacionalFronteraMobile,
 } from '../components/SectionBlocks.jsx';
-import { fetchHome, MOCK_DATA } from '../api/wordpress.js';
+import { fetchHome, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
+import BannerSlot from '../components/BannerSlot.jsx';
 
 // ── Layout de escritorio ───────────────────────────────────
-const HomeDesktop = ({ data, loading, theme, setTheme }) => {
+const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
 
   return (
     <div style={{ background: 'var(--tt-paper)' }}>
@@ -39,6 +40,11 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
           variant="hero"
           showHead={false}
         />
+      </section>
+
+      {/* Banner hero */}
+      <section style={{ padding: '0 40px', maxWidth: 1440, margin: '0 auto' }}>
+        <BannerSlot banner={banners['hero']} />
       </section>
 
       {/* Leaderboard ad entre hero y Más Noticias */}
@@ -58,6 +64,11 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
         </section>
       )}
 
+      {/* Banner mas-noticias */}
+      <section style={{ padding: '0 40px', maxWidth: 1440, margin: '0 auto' }}>
+        <BannerSlot banner={banners['mas-noticias']} />
+      </section>
+
       {/* Layout principal: columna central + sidebar */}
       <section style={{
         padding: '40px 40px 0',
@@ -69,6 +80,9 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
         <div>
           <SucesosBlock posts={data.sucesos} loading={loading} />
           <DeportesBlock posts={data.deportes} loading={loading} />
+
+          {/* Banner sucesos-deportes */}
+          <BannerSlot banner={banners['sucesos-deportes']} />
 
           {/* Ad entre deportes y fueron noticias */}
           <div style={{ marginTop: 56 }}>
@@ -86,6 +100,9 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
               </div>
             </div>
           )}
+
+          {/* Banner fueron-noticias */}
+          <BannerSlot banner={banners['fueron-noticias']} />
         </div>
 
         {/* ── Sidebar ── */}
@@ -100,6 +117,7 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
             variant="compact"
             categoria="videos"
           />
+          <BannerSlot banner={banners['videos']} />
 
           <WhatsappBox />
           <Ad size="halfpage" />
@@ -112,6 +130,11 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
       {/* Pueblos del Delta */}
       <section style={{ padding: '0 40px', maxWidth: 1440, margin: '0 auto' }}>
         <PueblosDelDeltaBlock posts={data.indigena} loading={loading} />
+      </section>
+
+      {/* Banner indigena */}
+      <section style={{ padding: '0 40px', maxWidth: 1440, margin: '0 auto' }}>
+        <BannerSlot banner={banners['indigena']} />
       </section>
 
       {/* Ad entre Pueblos y Frontera */}
@@ -128,6 +151,10 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
         />
       </section>
 
+      {/* Banner internacional */}
+      <section style={{ padding: '0 40px', maxWidth: 1440, margin: '0 auto' }}>
+        <BannerSlot banner={banners['internacional']} />
+      </section>
 
       <Footer />
     </div>
@@ -135,7 +162,7 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
 };
 
 // ── Layout móvil ───────────────────────────────────────────
-const HomeMobile = ({ data, loading, theme, setTheme }) => {
+const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
   const [hi, setHi]           = useState(0);
   const touchX                = useRef(null);
   const pauseRef              = useRef(false);
@@ -210,6 +237,9 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
         </div>
       </section>
 
+      {/* Banner hero — mobile */}
+      <BannerSlot banner={banners['hero']} style={{ margin: '16px 0', padding: '0 16px' }} />
+
       {/* Sub-hero */}
       <section style={{ padding: '0 16px 8px', display: 'flex', flexDirection: 'column' }}>
         {data.hero.slice(1, 3).map(s => (
@@ -234,6 +264,9 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
         ))}
       </section>
 
+      {/* Banner mas-noticias — mobile */}
+      <BannerSlot banner={banners['mas-noticias']} style={{ margin: '16px 0', padding: '0 16px' }} />
+
       <section style={{ padding: '20px 16px' }}>
         <Ad size="mobile" />
       </section>
@@ -248,6 +281,9 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
         <DeportesMobile posts={data.deportes} loading={loading} />
       </section>
 
+      {/* Banner sucesos-deportes — mobile */}
+      <BannerSlot banner={banners['sucesos-deportes']} style={{ margin: '16px 0', padding: '0 16px' }} />
+
       <section style={{ padding: '32px 16px 8px' }}>
         <MostReadBox stories={data.mostRead.slice(0, 4)} />
       </section>
@@ -256,10 +292,16 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
         <Ad size="mobile" />
       </section>
 
+      {/* Banner fueron-noticias — mobile */}
+      <BannerSlot banner={banners['fueron-noticias']} style={{ margin: '16px 0', padding: '0 16px' }} />
+
       {/* Pueblos del Delta */}
       <section style={{ padding: '8px 16px' }}>
         <PueblosDelDeltaMobile posts={data.indigena} loading={loading} />
       </section>
+
+      {/* Banner indigena — mobile */}
+      <BannerSlot banner={banners['indigena']} style={{ margin: '16px 0', padding: '0 16px' }} />
 
       {/* Internacional Frontera */}
       <section style={{ padding: '8px 16px' }}>
@@ -269,6 +311,9 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
           loading={loading}
         />
       </section>
+
+      {/* Banner internacional — mobile */}
+      <BannerSlot banner={banners['internacional']} style={{ margin: '16px 0', padding: '0 16px' }} />
 
       {/* Video */}
       <section style={{ padding: '8px 16px' }}>
@@ -281,6 +326,9 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
           categoria="videos"
         />
       </section>
+
+      {/* Banner videos — mobile */}
+      <BannerSlot banner={banners['videos']} style={{ margin: '16px 0', padding: '0 16px' }} />
 
       <section style={{ padding: '8px 16px 24px' }}>
         <WhatsappBox />
@@ -310,6 +358,7 @@ export default function HomePage({ theme, setTheme }) {
     categories:     MOCK_DATA.categories,
   });
   const [loading, setLoading] = useState(true);
+  const [banners, setBanners] = useState({});
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -325,10 +374,11 @@ export default function HomePage({ theme, setTheme }) {
         setLoading(false);
       }
     });
+    fetchBanners().then(setBanners);
     return () => { cancelled = true; };
   }, []);
 
   return isMobile
-    ? <HomeMobile data={data} loading={loading} theme={theme} setTheme={setTheme} />
-    : <HomeDesktop data={data} loading={loading} theme={theme} setTheme={setTheme} />;
+    ? <HomeMobile data={data} loading={loading} theme={theme} setTheme={setTheme} banners={banners} />
+    : <HomeDesktop data={data} loading={loading} theme={theme} setTheme={setTheme} banners={banners} />;
 }

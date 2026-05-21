@@ -36,6 +36,7 @@ app.use('/posts', require('./src/routes/posts'));
 app.use('/categories', require('./src/routes/categories'));
 app.use('/search', require('./src/routes/search'));
 app.use('/tags', require('./src/routes/tags'));
+app.use('/banners', require('./src/routes/banners'));
 
 // ── Category ID cache (warmed at startup) ─────────────────
 const catIdCache = new Map();
