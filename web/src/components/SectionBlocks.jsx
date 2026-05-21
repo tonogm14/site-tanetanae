@@ -451,7 +451,7 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
           fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700,
           letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tt-breaking)',
         }}>Sección</span>
-        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Sucesos</h2>
+        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 34, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Sucesos</h2>
       </div>
 
       <Link to={`/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 18 }}>
@@ -461,7 +461,7 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-breaking)' }}>
           Sucesos · {main.date}
         </span>
-        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6 }}>{main.title}</h3>
+        <h3 className="tt-headline" style={{ fontSize: 23, lineHeight: 1.12, marginTop: 6 }}>{main.title}</h3>
       </Link>
 
       {rest.slice(0, 3).map(s => (
@@ -475,10 +475,10 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
           </div>
           <div>
             <div style={{
-              fontFamily: 'var(--tt-font-mono)', fontSize: 10,
+              fontFamily: 'var(--tt-font-mono)', fontSize: 11,
               color: 'var(--tt-breaking)', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 4,
             }}>{s.date}</div>
-            <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15 }}>{s.title}</h4>
+            <h4 className="tt-headline" style={{ fontSize: 17, lineHeight: 1.15 }}>{s.title}</h4>
           </div>
         </Link>
       ))}
@@ -501,7 +501,7 @@ export const DeportesMobile = ({ posts = [], loading = false }) => {
             fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700,
             letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tt-green)',
           }}>Sección</span>
-          <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Deportes</h2>
+          <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 34, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Deportes</h2>
         </div>
         <Link to="/categoria/deportes" style={{ fontSize: 11, color: 'var(--tt-green)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, paddingBottom: 4 }}>
           Ver todas <Icon name="arrow" size={11} />
@@ -515,7 +515,7 @@ export const DeportesMobile = ({ posts = [], loading = false }) => {
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-green)' }}>
           Deportes · {lead.date}
         </span>
-        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6 }}>{lead.title}</h3>
+        <h3 className="tt-headline" style={{ fontSize: 23, lineHeight: 1.12, marginTop: 6 }}>{lead.title}</h3>
       </Link>
 
       {more.slice(0, 3).map(s => (
@@ -528,8 +528,8 @@ export const DeportesMobile = ({ posts = [], loading = false }) => {
             <PostImg post={s} />
           </div>
           <div>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-green)' }}>Deportes</span>
-            <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-green)' }}>Deportes</span>
+            <h4 className="tt-headline" style={{ fontSize: 17, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
           </div>
         </Link>
       ))}
@@ -556,7 +556,7 @@ export const PueblosDelDeltaMobile = ({ posts = [], loading = false }) => {
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 10, marginBottom: 8 }}>{main.date}</div>
         )}
         <Link to={`/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-          <h3 className="tt-headline" style={{ color: 'white', fontSize: 17, lineHeight: 1.2, marginBottom: 16 }}>{main.title}</h3>
+          <h3 className="tt-headline" style={{ color: 'white', fontSize: 18, lineHeight: 1.2, marginBottom: 16 }}>{main.title}</h3>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '10px 20px', borderRadius: 'var(--tt-r-pill)',
@@ -580,10 +580,10 @@ export const PueblosDelDeltaMobile = ({ posts = [], loading = false }) => {
                 <PostImg post={s} />
               </div>
               <div>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A4F3E' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8A4F3E' }}>
                   Indígenas · {s.date}
                 </span>
-                <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
+                <h4 className="tt-headline" style={{ fontSize: 17, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
               </div>
             </Link>
           ))}
@@ -603,7 +603,7 @@ export const InternacionalFronteraMobile = ({ trinidadPosts = [], guyanaPosts = 
           fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700,
           letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)',
         }}>Internacional</span>
-        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Frontera</h2>
+        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 34, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Frontera</h2>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {trinidadPosts.length > 0 && (
@@ -638,7 +638,7 @@ const SimpleMobile = ({ posts, title, accent = 'var(--tt-ink)', categorySlug }) 
       <div style={{ borderTop: `3px solid ${accent}`, paddingTop: 10, marginBottom: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
           <span style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: accent }}>Sección</span>
-          <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>{title}</h2>
+          <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 34, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>{title}</h2>
         </div>
         {categorySlug && (
           <Link to={`/categoria/${categorySlug}`} style={{ fontSize: 11, color: accent, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, paddingBottom: 4 }}>
@@ -654,7 +654,7 @@ const SimpleMobile = ({ posts, title, accent = 'var(--tt-ink)', categorySlug }) 
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent }}>
           {lead.cat} · {lead.date}
         </span>
-        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6 }}>{lead.title}</h3>
+        <h3 className="tt-headline" style={{ fontSize: 23, lineHeight: 1.12, marginTop: 6 }}>{lead.title}</h3>
       </Link>
 
       {rest.slice(0, 2).map(s => (
@@ -667,8 +667,8 @@ const SimpleMobile = ({ posts, title, accent = 'var(--tt-ink)', categorySlug }) 
             <PostImg post={s} />
           </div>
           <div>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent }}>{s.cat}</span>
-            <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent }}>{s.cat}</span>
+            <h4 className="tt-headline" style={{ fontSize: 17, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
           </div>
         </Link>
       ))}
@@ -690,7 +690,7 @@ export const VideosMobile = ({ posts = [], loading = false }) => {
     <section>
       <div style={{ borderTop: '3px solid var(--tt-ink)', paddingTop: 10, marginBottom: 14 }}>
         <span style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)' }}>Sección</span>
-        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Video</h2>
+        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 34, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Video</h2>
       </div>
 
       <Link to={`/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 14 }}>
@@ -698,7 +698,7 @@ export const VideosMobile = ({ posts = [], loading = false }) => {
           <PostImg post={lead} />
           <span style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.72)', color: 'white', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--tt-r-pill)', display: 'inline-flex', alignItems: 'center', gap: 4, letterSpacing: '0.04em' }}>▶ Video</span>
         </div>
-        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12 }}>{lead.title}</h3>
+        <h3 className="tt-headline" style={{ fontSize: 23, lineHeight: 1.12 }}>{lead.title}</h3>
       </Link>
 
       {more.slice(0, 3).map(s => (
@@ -711,8 +711,8 @@ export const VideosMobile = ({ posts = [], loading = false }) => {
             <PostImg post={s} />
           </div>
           <div>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)' }}>Video · {s.date}</span>
-            <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)' }}>Video · {s.date}</span>
+            <h4 className="tt-headline" style={{ fontSize: 17, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
           </div>
         </Link>
       ))}

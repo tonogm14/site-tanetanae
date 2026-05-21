@@ -78,7 +78,7 @@ const HeaderMobile = ({ activeCategory = '', theme, setTheme }) => {
             return (
               <Link key={item.label} to={item.href}
                 style={{
-                  padding: '6px 12px', fontSize: 12,
+                  padding: '6px 12px', fontSize: 13,
                   fontWeight: isActive ? 600 : 500,
                   color: isActive ? 'var(--tt-paper)' : item.special ? 'var(--tt-green)' : 'var(--tt-ink-muted)',
                   background: isActive ? (item.special ? 'var(--tt-green-vivid)' : 'var(--tt-ink)') : 'transparent',
@@ -132,7 +132,7 @@ const HeaderMobile = ({ activeCategory = '', theme, setTheme }) => {
               <Link key={item.label} to={item.href} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '13px 20px',
-                fontSize: 15, fontWeight: isActive ? 600 : 400,
+                fontSize: 16, fontWeight: isActive ? 600 : 400,
                 color: isActive ? accent : 'var(--tt-ink)',
                 borderLeft: isActive ? `3px solid ${accent}` : '3px solid transparent',
                 textDecoration: 'none',

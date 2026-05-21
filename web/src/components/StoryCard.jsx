@@ -17,7 +17,7 @@ const StoryCard = ({ story, size = 'md' }) => {
     return () => window.removeEventListener('resize', h);
   }, []);
 
-  const titleSize  = size === 'lg' ? 28 : size === 'sm' ? 17 : 22;
+  const titleSize  = size === 'lg' ? (isMobile ? 29 : 28) : size === 'sm' ? (isMobile ? 18 : 17) : (isMobile ? 23 : 22);
   const href       = story.slug ? `/${story.slug}` : `/${story.id}`;
   const hoverTimer = useRef(null);
 
@@ -56,7 +56,7 @@ const StoryCard = ({ story, size = 'md' }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{
           fontFamily: 'var(--tt-font-sans)',
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+          fontSize: isMobile ? 11 : 10, fontWeight: 700, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: 'var(--tt-green)',
         }}>{story.cat || 'Recientes'}</span>
         <span style={{ width: 3, height: 3, borderRadius: 999, background: 'var(--tt-line-strong)' }} />

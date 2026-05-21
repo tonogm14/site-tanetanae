@@ -12,7 +12,13 @@ html {
 }
 
 @media (max-width: 767px) {
-  html { zoom: 1.06; }
+  html { overflow-x: hidden; }
+  body { overflow-x: hidden; }
+
+  /* Increase base typography classes on mobile */
+  .tt-meta    { font-size: 13px !important; }
+  .tt-chip    { font-size: 11px !important; }
+  .tt-eyebrow { font-size: 12px !important; }
 }
 
 body {
@@ -459,4 +465,122 @@ body {
 }
 @media (min-width: 768px) {
   .tt-hide-desktop { display: none !important; }
+}
+
+/* ── Print ── */
+.tt-print-only { display: none; }
+
+@media print {
+  @page { size: A4; margin: 1.8cm 2cm; }
+
+  html { zoom: 1 !important; }
+  body { background: #fff !important; margin: 0; padding: 0; }
+
+  /* Hide the entire SPA shell */
+  .tt { display: none !important; }
+
+  /* Show the print-only article */
+  .tt-print-only {
+    display: block !important;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .tt-print-masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 8pt;
+    margin-bottom: 16pt;
+    border-bottom: 2pt solid #000;
+    font-family: Arial, sans-serif;
+  }
+  .tt-print-masthead strong { font-size: 14pt; letter-spacing: 0.08em; }
+  .tt-print-masthead span  { font-size: 9pt; color: #555; }
+
+  .tt-print-cat {
+    margin: 0 0 6pt;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #333;
+  }
+
+  .tt-print-title {
+    margin: 0 0 10pt;
+    font-size: 22pt;
+    line-height: 1.15;
+    font-weight: 700;
+  }
+
+  .tt-print-deck {
+    margin: 0 0 10pt;
+    font-size: 13pt;
+    line-height: 1.4;
+    color: #333;
+    font-style: italic;
+  }
+
+  .tt-print-byline {
+    margin: 0 0 14pt;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    color: #555;
+  }
+
+  .tt-print-hr {
+    border: none;
+    border-top: 1pt solid #bbb;
+    margin: 0 0 16pt;
+  }
+
+  /* Article body from WP HTML */
+  .tt-print-body p  { margin: 0 0 10pt; font-size: 11pt; line-height: 1.6; }
+  .tt-print-body h2 { margin: 14pt 0 6pt; font-size: 14pt; page-break-after: avoid; }
+  .tt-print-body h3 { margin: 10pt 0 4pt; font-size: 12pt; page-break-after: avoid; }
+  .tt-print-body blockquote {
+    margin: 12pt 0 12pt 16pt;
+    padding: 6pt 12pt;
+    border-left: 3pt solid #333;
+    font-style: italic;
+  }
+  .tt-print-body img   { max-width: 100% !important; height: auto !important; }
+  .tt-print-body a     { color: #000 !important; text-decoration: none !important; }
+  .tt-print-body ul, .tt-print-body ol { margin: 0 0 10pt; padding-left: 18pt; }
+  .tt-print-body li    { margin-bottom: 4pt; }
+
+  /* Inline body (structured mock data) */
+  .tt-print-only > p   { margin: 0 0 10pt; }
+  .tt-print-only > h2  { margin: 14pt 0 6pt; font-size: 14pt; page-break-after: avoid; }
+  .tt-print-only > blockquote {
+    margin: 12pt 0 12pt 16pt;
+    padding: 6pt 12pt;
+    border-left: 3pt solid #333;
+    font-style: italic;
+  }
+  .tt-print-only > blockquote cite { font-size: 9pt; font-style: normal; color: #555; }
+
+  .tt-print-tags {
+    margin-top: 16pt;
+    padding-top: 10pt;
+    border-top: 1pt solid #ccc;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    color: #555;
+  }
+
+  .tt-print-url {
+    margin-top: 10pt;
+    font-family: Arial, sans-serif;
+    font-size: 8pt;
+    color: #888;
+  }
+
+  /* Page break rules */
+  p, blockquote, li { page-break-inside: avoid; orphans: 3; widows: 3; }
+  h1, h2, h3 { page-break-after: avoid; }
 }

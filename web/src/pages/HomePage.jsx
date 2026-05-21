@@ -203,8 +203,8 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners, otherPosts }) => 
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.85) 100%)' }} />
             <div style={{ position: 'absolute', inset: 'auto 0 0 0', padding: 20 }}>
               {hero.cat && <span className="tt-chip" style={{ marginBottom: 10, display: 'inline-flex' }}>{hero.cat}</span>}
-              <h2 className="tt-headline" style={{ color: 'white', fontSize: 28, marginBottom: 10 }}>{hero.title}</h2>
-              <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>
+              <h2 className="tt-headline" style={{ color: 'white', fontSize: 30, marginBottom: 10 }}>{hero.title}</h2>
+              <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
                 <span>{hero.author}</span><span>·</span><span>{hero.date}</span>
               </div>
             </div>
@@ -234,10 +234,10 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners, otherPosts }) => 
           }}>
             <div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-green)' }}>{s.cat}</span>
-                <span style={{ fontSize: 10, color: 'var(--tt-ink-faint)' }}>{s.date}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-green)' }}>{s.cat}</span>
+                <span style={{ fontSize: 11, color: 'var(--tt-ink-faint)' }}>{s.date}</span>
               </div>
-              <h3 className="tt-headline" style={{ fontSize: 17, lineHeight: 1.15 }}>{s.title}</h3>
+              <h3 className="tt-headline" style={{ fontSize: 18, lineHeight: 1.15 }}>{s.title}</h3>
             </div>
             <div style={{ borderRadius: 8, overflow: 'hidden' }}>
               {s.imgUrl

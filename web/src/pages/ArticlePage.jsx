@@ -148,6 +148,37 @@ export default function ArticlePage({ theme, setTheme }) {
   const onCopied   = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const shareUrls  = buildShareUrls(a.title, articleUrl);
 
+  const printOnly = (
+    <div className="tt-print-only">
+      <div className="tt-print-masthead">
+        <strong>TANE TANAE</strong><span>tanetanae.com</span>
+      </div>
+      {a.cat && <p className="tt-print-cat">{a.cat}</p>}
+      <h1 className="tt-print-title">{a.title}</h1>
+      {a.deck && <p className="tt-print-deck">{a.deck}</p>}
+      <p className="tt-print-byline">{a.author} · {a.date}</p>
+      <hr className="tt-print-hr" />
+      {a.content
+        ? <div className="tt-print-body" dangerouslySetInnerHTML={{ __html: a.content }} />
+        : (a.body || []).map((b, i) => {
+            if (b.type === 'p') return <p key={i}>{b.text}</p>;
+            if (b.type === 'h') return <h2 key={i}>{b.text}</h2>;
+            if (b.type === 'quote') return (
+              <blockquote key={i}>
+                <p>{b.text}</p>
+                {b.who && <cite>— {b.who}</cite>}
+              </blockquote>
+            );
+            return null;
+          })
+      }
+      {(a.tags || []).length > 0 && (
+        <p className="tt-print-tags">Etiquetas: {a.tags.join(', ')}</p>
+      )}
+      <p className="tt-print-url">{articleUrl}</p>
+    </div>
+  );
+
   // Actualiza OG + Twitter Card tags para compartir en redes
   useEffect(() => {
     if (!a.slug) return;
@@ -189,7 +220,7 @@ export default function ArticlePage({ theme, setTheme }) {
 
   // ── Desktop article ──────────────────────────────────────
   if (!isMobile) {
-    return (
+    return (<>
       <div className="tt" ref={wrapRef} style={{ background: 'var(--tt-paper)', position: 'relative' }}>
         {/* Reading progress */}
         <div style={{ position: 'sticky', top: 0, zIndex: 30, height: 3, width: '100%', background: 'rgba(0,0,0,0.08)' }}>
@@ -441,11 +472,12 @@ export default function ArticlePage({ theme, setTheme }) {
         <Footer />
 
       </div>
-    );
+      {printOnly}
+    </>);
   }
 
   // ── Mobile article ───────────────────────────────────────
-  return (
+  return (<>
     <div className="tt" ref={wrapRef} style={{ background: 'var(--tt-paper)', position: 'relative' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 30, height: 3, background: 'rgba(0,0,0,0.08)' }}>
         <div style={{ height: '100%', width: `${progress}%`, background: 'var(--tt-green-vivid)' }} />
@@ -594,5 +626,6 @@ export default function ArticlePage({ theme, setTheme }) {
         </button>
       </div>
     </div>
-  );
+    {printOnly}
+  </>);
 }
