@@ -94,28 +94,22 @@ export default function CategoryPage({ theme, setTheme }) {
   const [mostRead, setMostRead] = useState(MOCK_DATA.mostRead);
   const [breaking, setBreaking] = useState(MOCK_DATA.breaking);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(() => {
-    const p = parseInt(searchParams.get('page') || '1', 10);
-    return isNaN(p) || p < 1 ? 1 : p;
-  });
   const [totalPages, setTotalPages] = useState(1);
 
-  const catLabel    = CAT_LABELS[slug] || slug;
-  const isFirstSlug = useRef(true);
+  // Página derivada directamente de la URL — nunca en estado local.
+  // Así no hay setSearchParams programáticos que interfieran con el router.
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
+  const page    = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
+  const catLabel = CAT_LABELS[slug] || slug;
+  const prevSlug = useRef(slug);
 
+  // Ir a otra categoría: limpiar posts y volver a página 1 en la URL
   useEffect(() => {
-    // Saltar el primer render: la página ya viene correcta desde la URL.
-    // Solo resetear cuando el usuario navega a otra categoría.
-    if (isFirstSlug.current) { isFirstSlug.current = false; return; }
+    if (prevSlug.current === slug) return;
+    prevSlug.current = slug;
     setPosts([]);
-    setPage(1);
-    setSearchParams({});
+    setSearchParams({}, { replace: true });
     window.scrollTo({ top: 0 });
   }, [slug]);
 
@@ -234,7 +228,6 @@ export default function CategoryPage({ theme, setTheme }) {
 
               {totalPages > 1 && (
                 <Pagination page={page} totalPages={totalPages} onPage={p => {
-                  setPage(p);
                   setSearchParams(p === 1 ? {} : { page: String(p) });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }} />

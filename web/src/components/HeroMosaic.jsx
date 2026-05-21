@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { prefetchPost } from '../api/wordpress.js';
 
 /* ── Image placeholder or real photo ── */
 const CardImage = ({ story }) => (
@@ -7,15 +8,20 @@ const CardImage = ({ story }) => (
     ? <img src={story.imgUrl} alt={story.title}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
           transition: 'transform 0.45s ease' }} className="tt-hero-img" />
-    : <div className={`tt-img tt-img--${story.img || 'recientes'}`}
+    : <div
         style={{ position: 'absolute', inset: 0, transition: 'transform 0.45s ease' }}
         className={`tt-img tt-img--${story.img || 'recientes'} tt-hero-img`} />
 );
 
 /* ── Large card (top row) ── */
-const LargeCard = ({ story }) => (
+const LargeCard = ({ story }) => {
+  const timer = useRef(null);
+  return (
   <Link
     to={`/${story.slug || story.id}`}
+    state={{ preview: story }}
+    onMouseEnter={() => { timer.current = setTimeout(() => prefetchPost(story.slug), 120); }}
+    onMouseLeave={() => clearTimeout(timer.current)}
     style={{ display: 'block', borderRadius: 'var(--tt-r-lg)', overflow: 'hidden',
       position: 'relative', background: 'var(--tt-ink)', color: 'white', height: '100%' }}
     className="tt-hero-card"
@@ -64,12 +70,18 @@ const LargeCard = ({ story }) => (
       </div>
     </div>
   </Link>
-);
+  );
+};
 
 /* ── Small card (bottom row) ── */
-const SmallCard = ({ story }) => (
+const SmallCard = ({ story }) => {
+  const timer = useRef(null);
+  return (
   <Link
     to={`/${story.slug || story.id}`}
+    state={{ preview: story }}
+    onMouseEnter={() => { timer.current = setTimeout(() => prefetchPost(story.slug), 120); }}
+    onMouseLeave={() => clearTimeout(timer.current)}
     style={{ display: 'block', borderRadius: 'var(--tt-r-md)', overflow: 'hidden',
       position: 'relative', background: 'var(--tt-ink)', color: 'white', height: '100%' }}
     className="tt-hero-card"
@@ -104,7 +116,8 @@ const SmallCard = ({ story }) => (
       </div>
     </div>
   </Link>
-);
+  );
+};
 
 /* ── Skeleton placeholder while loading ── */
 const SkeletonCard = ({ height }) => (

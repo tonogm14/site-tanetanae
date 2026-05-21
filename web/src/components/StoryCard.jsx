@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { prefetchPost } from '../api/wordpress.js';
 
 const TTImage = ({ tone, aspect = '16x9', style = {} }) => (
   <div
@@ -9,11 +10,31 @@ const TTImage = ({ tone, aspect = '16x9', style = {} }) => (
 );
 
 const StoryCard = ({ story, size = 'md', showExcerpt = true }) => {
-  const titleSize = size === 'lg' ? 28 : size === 'sm' ? 17 : 22;
-  const href = story.slug ? `/${story.slug}` : `/${story.id}`;
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+
+  const titleSize  = size === 'lg' ? 28 : size === 'sm' ? 17 : 22;
+  const href       = story.slug ? `/${story.slug}` : `/${story.id}`;
+  const hoverTimer = useRef(null);
+
+  const handleMouseEnter = () => {
+    hoverTimer.current = setTimeout(() => prefetchPost(story.slug), 120);
+  };
+  const handleMouseLeave = () => clearTimeout(hoverTimer.current);
 
   return (
-    <Link to={href} className="tt-card-link" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <Link
+      to={href}
+      state={{ preview: story }}
+      className="tt-card-link"
+      style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden' }}>
         <div className="tt-img__zoom">
           {story.imgUrl ? (
@@ -44,7 +65,7 @@ const StoryCard = ({ story, size = 'md', showExcerpt = true }) => {
       <h3 className="tt-headline" style={{ fontSize: titleSize, lineHeight: 1.05 }}>
         {story.title}
       </h3>
-      {showExcerpt && story.excerpt && size !== 'sm' && (
+      {showExcerpt && !isMobile && story.excerpt && size !== 'sm' && (
         <p className="tt-body" style={{ fontSize: 14, color: 'var(--tt-ink-muted)' }}>
           {story.excerpt.length > 80 ? story.excerpt.slice(0, 80).trimEnd() + '…' : story.excerpt}
         </p>

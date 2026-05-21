@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import UtilityStrip from '../components/UtilityStrip.jsx';
 import BreakingBar from '../components/BreakingBar.jsx';
 import Header from '../components/Header.jsx';
@@ -136,14 +136,40 @@ const HomeDesktop = ({ data, loading, theme, setTheme }) => {
 
 // ── Layout móvil ───────────────────────────────────────────
 const HomeMobile = ({ data, loading, theme, setTheme }) => {
-  const [hi, setHi] = useState(0);
+  const [hi, setHi]           = useState(0);
+  const touchX                = useRef(null);
+  const pauseRef              = useRef(false);
+  const navigate              = useNavigate();
+
   useEffect(() => {
-    if (!data.hero.length) return;
-    const id = setInterval(() => setHi(v => (v + 1) % data.hero.length), 6000);
+    if (data.hero.length <= 1) return;
+    const id = setInterval(() => {
+      if (!pauseRef.current) setHi(v => (v + 1) % data.hero.length);
+    }, 6000);
     return () => clearInterval(id);
   }, [data.hero.length]);
 
   const hero = data.hero[hi] || {};
+
+  const handleTouchStart = (e) => {
+    touchX.current = e.touches[0].clientX;
+    pauseRef.current = true;
+  };
+
+  const handleTouchEnd = (e) => {
+    const dx = e.changedTouches[0].clientX - (touchX.current ?? 0);
+    touchX.current = null;
+    setTimeout(() => { pauseRef.current = false; }, 4000);
+    if (Math.abs(dx) > 50) {
+      // Swipe — change slide
+      setHi(v => dx < 0
+        ? (v + 1) % data.hero.length
+        : (v - 1 + data.hero.length) % data.hero.length);
+    } else if (Math.abs(dx) < 8 && hero.slug) {
+      // Tap — navigate
+      navigate(`/${hero.slug}`);
+    }
+  };
 
   return (
     <div style={{ background: 'var(--tt-paper)' }}>
@@ -152,8 +178,12 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
 
       {/* Hero card rotativo */}
       <section style={{ padding: 16 }}>
-        <Link to={hero.slug ? `/${hero.slug}` : '/'} style={{ display: 'block' }}>
-          <div style={{ position: 'relative', height: 420, borderRadius: 'var(--tt-r-lg)', overflow: 'hidden', background: 'var(--tt-ink)', color: 'white' }}>
+        <div style={{ position: 'relative' }}>
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{ position: 'relative', height: 420, borderRadius: 'var(--tt-r-lg)', overflow: 'hidden', background: 'var(--tt-ink)', color: 'white', cursor: 'pointer' }}
+          >
             {hero.imgUrl
               ? <img src={hero.imgUrl} alt={hero.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               : <div className={`tt-img tt-img--${hero.img || 'recientes'}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
@@ -166,17 +196,18 @@ const HomeMobile = ({ data, loading, theme, setTheme }) => {
                 <span>{hero.author}</span><span>·</span><span>{hero.date}</span>
               </div>
             </div>
-            <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 4 }}>
-              {data.hero.map((_, idx) => (
-                <span key={idx} style={{
-                  width: idx === hi ? 18 : 6, height: 4, borderRadius: 999,
-                  background: idx === hi ? 'var(--tt-green-vivid)' : 'rgba(255,255,255,0.4)',
-                  transition: 'all 0.25s',
-                }} />
-              ))}
-            </div>
           </div>
-        </Link>
+          {/* Dots — fuera del área de navegación */}
+          <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 4, zIndex: 5 }}>
+            {data.hero.map((_, idx) => (
+              <button key={idx} onClick={() => setHi(idx)} style={{
+                width: idx === hi ? 18 : 6, height: 4, borderRadius: 999, padding: 0, border: 'none',
+                background: idx === hi ? 'var(--tt-green-vivid)' : 'rgba(255,255,255,0.4)',
+                transition: 'all 0.25s', cursor: 'pointer',
+              }} />
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Sub-hero */}

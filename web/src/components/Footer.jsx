@@ -29,7 +29,7 @@ const SectionTitle = ({ children }) => (
 const WhatsAppCTA = () => (
   <div>
     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 16 }}>
-      Resumen diario de noticias directo en tu teléfono. Sin spam.
+      Resumen diario a las 7:00 AM. Sin spam, sin grupos. Solo lo importante.
     </p>
     <a
       href={WA_URL}
@@ -125,7 +125,7 @@ const FooterDesktop = () => (
 
       {/* WhatsApp CTA + redes */}
       <div>
-        <SectionTitle>Recibe noticias del Delta en tu Whatsapp</SectionTitle>
+        <SectionTitle>El delta en tu WhatsApp</SectionTitle>
         <WhatsAppCTA />
         <div style={{ marginTop: 24 }}>
           <SocialRow />
@@ -162,7 +162,7 @@ const FooterMobile = () => (
 
       {/* WhatsApp */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 24, marginBottom: 28 }}>
-        <SectionTitle>Recibe noticias del Delta en tu Whatsapp</SectionTitle>
+        <SectionTitle>El delta en tu WhatsApp</SectionTitle>
         <WhatsAppCTA />
       </div>
 

@@ -138,13 +138,28 @@ export async function fetchPosts({ page = 1, perPage = 10, category } = {}) {
   }
 }
 
+// In-memory prefetch cache — populated on hover, consumed on navigation
+const prefetchCache = new Map();
+
 export async function fetchPost(slug) {
+  if (prefetchCache.has(slug)) {
+    const data = prefetchCache.get(slug);
+    prefetchCache.delete(slug);
+    return data;
+  }
   try {
     const { data } = await client.get(`/posts/slug/${slug}`);
     return data;
   } catch {
     return MOCK_DATA.article;
   }
+}
+
+export function prefetchPost(slug) {
+  if (!slug || prefetchCache.has(slug)) return;
+  client.get(`/posts/slug/${slug}`)
+    .then(({ data }) => prefetchCache.set(slug, data))
+    .catch(() => {});
 }
 
 export async function fetchCategories() {
@@ -183,11 +198,24 @@ export async function fetchMostRead() {
   }
 }
 
-// Fire-and-forget: registra una visita sin bloquear nada.
-// Falla silenciosamente si WordPress no responde.
-export function registerView(postId) {
-  if (!postId) return;
-  client.post(`/views/${postId}`).catch(() => {});
+// Registra una visita y devuelve el nuevo conteo (o null si falla).
+export async function registerView(postId) {
+  if (!postId) return null;
+  try {
+    const { data } = await client.post(`/views/${postId}`);
+    return data?.views ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchTrendingTags() {
+  try {
+    const { data } = await client.get('/tags/trending');
+    return Array.isArray(data) ? data.map(t => t.name) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function searchPosts(query, page = 1) {

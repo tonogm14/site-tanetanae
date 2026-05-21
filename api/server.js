@@ -35,6 +35,7 @@ app.use((req, _res, next) => {
 app.use('/posts', require('./src/routes/posts'));
 app.use('/categories', require('./src/routes/categories'));
 app.use('/search', require('./src/routes/search'));
+app.use('/tags', require('./src/routes/tags'));
 
 // ── Category ID cache (warmed at startup) ─────────────────
 const catIdCache = new Map();
@@ -88,10 +89,11 @@ function mapPost(post) {
   const imgMedium = imgSizes.medium_large?.source_url || imgSizes.large?.source_url || imgUrl;
 
   const dateObj = new Date(post.date);
-  const dateStr = dateObj.toLocaleDateString('es-VE', { day: 'numeric', month: 'short', year: 'numeric' });
+  const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dateStr = `${dateObj.getDate()} ${MONTHS_ES[dateObj.getMonth()]}, ${dateObj.getFullYear()}`;
 
   const wordCount = (post.content?.rendered || '').replace(/<[^>]+>/g, '').split(/\s+/).length;
-  const readTime = `${Math.max(1, Math.round(wordCount / 200))} min`;
+  const readTime = `${Math.max(4, Math.round(wordCount / 200))} min`;
 
   const excerpt = (post.excerpt?.rendered || '')
     .replace(/<[^>]+>/g, '')
@@ -128,7 +130,7 @@ function mapPost(post) {
 }
 
 // ── Fetch helpers ─────────────────────────────────────────
-async function fetchSection({ perPage = 4, categorySlug, orderby = 'date' } = {}) {
+async function fetchSection({ perPage = 4, categorySlug, orderby = 'date', after } = {}) {
   try {
     const params = {
       per_page: perPage,
@@ -138,6 +140,7 @@ async function fetchSection({ perPage = 4, categorySlug, orderby = 'date' } = {}
       order: 'desc',
       _fields: 'id,slug,title,excerpt,date,link,_links,_embedded',
     };
+    if (after) params.after = after;
     if (categorySlug) {
       const id = await getCategoryId(categorySlug);
       // Si la categoría no existe en WP → sección vacía (no mostrar posts sin filtrar)
@@ -242,10 +245,24 @@ app.get('/hero', cacheMiddleware(120), async (req, res) => {
   res.json(posts);
 });
 
-// ── GET /most-read ────────────────────────────────────────
+// ── GET /most-read — noticias aleatorias del día ─────────
 app.get('/most-read', cacheMiddleware(300), async (req, res) => {
-  const posts = await fetchSection({ perPage: 5, orderby: 'comment_count' });
-  res.json(posts);
+  // Busca posts de hoy; si hay menos de 5, amplía a los últimos 3 días
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+
+  let posts = await fetchSection({ perPage: 20, after: todayMidnight.toISOString() });
+  if (posts.length < 5) {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    posts = await fetchSection({ perPage: 20, after: threeDaysAgo.toISOString() });
+  }
+
+  // Mezcla aleatoria (Fisher-Yates) y devuelve 5
+  for (let i = posts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [posts[i], posts[j]] = [posts[j], posts[i]];
+  }
+  res.json(posts.slice(0, 5));
 });
 
 // ── POST /views/:id — incremento atómico via WordPress ───────────────────────

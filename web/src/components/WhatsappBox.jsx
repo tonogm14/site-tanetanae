@@ -1,6 +1,8 @@
 import React from 'react';
 import Icon from './Icon.jsx';
 
+const WA_URL = import.meta.env.VITE_WHATSAPP_URL || '#';
+
 const WhatsappBox = () => (
   <div style={{
     background: 'var(--tt-green)',
@@ -20,15 +22,15 @@ const WhatsappBox = () => (
     <p style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.85, marginBottom: 16 }}>
       Resumen diario a las 7:00 AM. Sin spam, sin grupos. Solo lo importante.
     </p>
-    <button style={{
+    <a href={WA_URL} target="_blank" rel="noopener noreferrer" style={{
       background: 'white', color: 'var(--tt-green-deep)',
       padding: '10px 16px', borderRadius: 'var(--tt-r-pill)',
       fontWeight: 600, fontSize: 12, letterSpacing: '0.04em',
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      cursor: 'pointer', border: 'none',
+      textDecoration: 'none',
     }}>
       Suscribirme <Icon name="arrow" size={12} />
-    </button>
+    </a>
     <div style={{
       position: 'absolute', right: -30, bottom: -30, width: 140, height: 140,
       borderRadius: '50%', background: 'rgba(255,255,255,0.08)',

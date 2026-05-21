@@ -29,11 +29,6 @@ const Header = ({ compact = false, activeCategory = '', theme, setTheme }) => {
           onClick={() => navigate('/buscar')}
         >
           <Icon name="search" size={14} /> Buscar
-          <span style={{
-            fontSize: 10, color: 'var(--tt-ink-faint)',
-            border: '1px solid var(--tt-line-strong)', borderRadius: 4,
-            padding: '1px 5px', letterSpacing: '0.04em',
-          }}>⌘ K</span>
         </button>
         {setTheme && (
           <button
@@ -80,7 +75,7 @@ const Header = ({ compact = false, activeCategory = '', theme, setTheme }) => {
       <nav style={{
         display: 'flex', gap: 0, alignItems: 'stretch',
         maxWidth: 1440, margin: '0 auto', padding: '0 40px',
-        fontFamily: 'var(--tt-font-sans)', overflowX: 'hidden',
+        fontFamily: 'var(--tt-font-sans)', overflow: 'hidden',
       }}>
         {NAV.map((item) => {
           const isActive = item.slug === activeCategory || (!activeCategory && item.slug === '');

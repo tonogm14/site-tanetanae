@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import UtilityStrip from '../components/UtilityStrip.jsx';
 import Header from '../components/Header.jsx';
 import HeaderMobile from '../components/HeaderMobile.jsx';
@@ -22,6 +22,34 @@ function fmtViews(n) {
   return n.toLocaleString('es-VE');
 }
 
+function extractKeyPoints(html) {
+  if (!html) return [];
+  const clean = s => s
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&hellip;/g, '…')
+    .replace(/&#8217;/g, '’')
+    .replace(/&#8220;/g, '“')
+    .replace(/&#8221;/g, '”')
+    .replace(/&#8230;/g, '…')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const paras = html
+    .split(/<\/?p[^>]*>/gi)
+    .map(clean)
+    .filter(s => s.length > 60);
+
+  return paras
+    .map(p => {
+      // first sentence ending in . ! ?
+      const m = p.match(/^.{40,200}?[.!?](?:\s|$)/);
+      return m ? m[0].trim() : p.slice(0, 160) + (p.length > 160 ? '…' : '');
+    })
+    .slice(0, 2);
+}
+
 function buildShareUrls(title, url) {
   const enc = encodeURIComponent;
   return {
@@ -31,27 +59,47 @@ function buildShareUrls(title, url) {
   };
 }
 
-async function shareNative(title, url, onCopied) {
-  if (navigator.share) {
-    try { await navigator.share({ title, url }); return; } catch {}
-  }
-  try { await navigator.clipboard.writeText(url); onCopied(); } catch {}
+function copyLink(url, onCopied) {
+  navigator.clipboard.writeText(url).then(onCopied).catch(() => {});
+}
+
+function injectRelatedBlocks(html) {
+  if (!html) return html;
+  return html.replace(
+    /<p[^>]*>\s*<a\s+href="https?:\/\/(?:www\.)?tanetanae\.com\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/p>/gi,
+    (_m, slug, text) => {
+      const clean = text.replace(/<[^>]+>/g, '').trim();
+      if (!clean) return _m;
+      return `<div class="tt-related-block" data-slug="${slug}">
+        <span class="tt-related-label">Noticia relacionada</span>
+        <span class="tt-related-title">${clean}</span>
+        <span class="tt-related-arrow" aria-hidden="true">→</span>
+      </div>`;
+    }
+  );
 }
 
 export default function ArticlePage({ theme, setTheme }) {
-  const { slug } = useParams();
+  const { slug }   = useParams();
+  const location   = useLocation();
+  const navigate   = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [article, setArticle] = useState(null);
+  // Seed with router state so title/image appear instantly while API loads
+  const [article, setArticle] = useState(location.state?.preview || null);
   const [mostRead, setMostRead] = useState(MOCK_DATA.mostRead);
   const [related, setRelated] = useState(MOCK_DATA.related);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [zoomSrc, setZoomSrc] = useState(null);
   const wrapRef = useRef(null);
 
-  const articleUrl  = typeof window !== 'undefined' ? window.location.href : '';
-  const onCopied    = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-  const shareUrls   = buildShareUrls(a.title, articleUrl);
+  useEffect(() => {
+    if (!zoomSrc) return;
+    const onKey = e => { if (e.key === 'Escape') setZoomSrc(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [zoomSrc]);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -88,14 +136,49 @@ export default function ArticlePage({ theme, setTheme }) {
       if (mostReadResult.status === 'fulfilled') setMostRead(mostReadResult.value);
       if (relatedResult.status === 'fulfilled') setRelated(relatedResult.value.posts);
       setLoading(false);
-      // Registrar visita en WordPress (fire-and-forget, no bloquea nada)
-      registerView(art.id);
+      // Registrar visita; actualizar conteo mostrado con el valor fresco de WP
+      registerView(art.id).then(views => {
+        if (views != null) setArticle(prev => prev ? { ...prev, views } : prev);
+      });
     });
 
     return () => { cancelled = true; };
   }, [slug]);
 
-  const a = article || MOCK_DATA.article;
+  const a          = article || MOCK_DATA.article;
+  const siteUrl    = (import.meta.env.VITE_SITE_URL || window.location.origin).replace(/\/$/, '');
+  const articleUrl = a.slug ? `${siteUrl}/${a.slug}` : window.location.href;
+  const onCopied   = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const shareUrls  = buildShareUrls(a.title, articleUrl);
+
+  // Actualiza OG + Twitter Card tags para compartir en redes
+  useEffect(() => {
+    if (!a.slug) return;
+    const setProp = (prop, content) => {
+      let el = document.querySelector(`meta[property="${prop}"]`);
+      if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
+      el.setAttribute('content', content);
+    };
+    const setName = (name, content) => {
+      let el = document.querySelector(`meta[name="${name}"]`);
+      if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el); }
+      el.setAttribute('content', content);
+    };
+    const desc = a.deck || a.excerpt || '';
+    document.title = `${a.title} · Tane Tanae`;
+    // Open Graph (Facebook, WhatsApp, LinkedIn…)
+    setProp('og:title',       a.title);
+    setProp('og:description', desc);
+    setProp('og:url',         articleUrl);
+    setProp('og:type',        'article');
+    if (a.imgUrl) setProp('og:image', a.imgUrl);
+    // Twitter Card
+    setName('twitter:card',        a.imgUrl ? 'summary_large_image' : 'summary');
+    setName('twitter:title',       a.title);
+    setName('twitter:description', desc);
+    if (a.imgUrl) setName('twitter:image', a.imgUrl);
+    return () => { document.title = 'Tane Tanae · Así pasó'; };
+  }, [a.slug, articleUrl]);
 
   if (loading) {
     return (
@@ -120,10 +203,10 @@ export default function ArticlePage({ theme, setTheme }) {
         <Header compact theme={theme} setTheme={setTheme} />
 
         {/* Cinematic hero */}
-        <section style={{ position: 'relative', height: 720, background: 'var(--tt-ink)', color: 'white', overflow: 'hidden' }}>
+        <section style={{ position: 'relative', height: 'min(624px, 94vh)', background: 'var(--tt-ink)', color: 'white', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0 }}>
             {a.imgFull || a.imgUrl
-              ? <img src={a.imgFull || a.imgUrl} alt={a.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={a.imgFull || a.imgUrl} alt={a.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} />
               : <TTImage tone={a.img} style={{ height: '100%' }} aspect="" />
             }
           </div>
@@ -173,7 +256,7 @@ export default function ArticlePage({ theme, setTheme }) {
               <span style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.2)' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Publicado</span>
-                <span>{a.date}{a.time ? `, ${a.time}` : ''}</span>
+                <span>{a.date}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Lectura</span>
@@ -192,17 +275,28 @@ export default function ArticlePage({ theme, setTheme }) {
               )}
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
-                  { n: 'whatsapp', href: shareUrls.whatsapp },
-                  { n: 'facebook', href: shareUrls.facebook },
-                  { n: 'twitter',  href: shareUrls.twitter  },
-                ].map(({ n, href }) => (
-                  <a key={n} href={href} target="_blank" rel="noopener noreferrer" style={{
+                  { n: 'whatsapp',  href: shareUrls.whatsapp },
+                  { n: 'facebook',  href: shareUrls.facebook },
+                  { n: 'twitter',   href: shareUrls.twitter  },
+                  { n: 'instagram', copy: true },
+                  { n: 'tiktok',    copy: true },
+                ].map(({ n, href, copy }) => {
+                  const s = {
                     width: 30, height: 30, borderRadius: '50%',
                     background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
                     color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    textDecoration: 'none',
-                  }}><Icon name={n} size={13} /></a>
-                ))}
+                  };
+                  return copy ? (
+                    <button key={n} onClick={() => copyLink(articleUrl, onCopied)}
+                      title="Copiar enlace" style={{ ...s, border: 'none', cursor: 'pointer' }}>
+                      <Icon name={n} size={13} />
+                    </button>
+                  ) : (
+                    <a key={n} href={href} target="_blank" rel="noopener noreferrer" style={{ ...s, textDecoration: 'none' }}>
+                      <Icon name={n} size={13} />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -217,10 +311,19 @@ export default function ArticlePage({ theme, setTheme }) {
             </span>
             <span style={{ width: 1, height: 28, background: 'var(--tt-line-strong)' }} />
             {[
-              { n: 'whatsapp', c: '#25D366', href: shareUrls.whatsapp },
-              { n: 'facebook', c: '#1877F2', href: shareUrls.facebook },
-              { n: 'twitter',  c: '#000',    href: shareUrls.twitter  },
-            ].map(({ n, c, href }) => (
+              { n: 'whatsapp',  c: '#25D366', href: shareUrls.whatsapp },
+              { n: 'facebook',  c: '#1877F2', href: shareUrls.facebook },
+              { n: 'twitter',   c: '#1a1a1a', href: shareUrls.twitter  },
+              { n: 'instagram', c: '#E1306C', copy: true },
+              { n: 'tiktok',    c: '#1a1a1a', copy: true },
+            ].map(({ n, c, href, copy }) => copy ? (
+              <button key={n} onClick={() => copyLink(articleUrl, onCopied)}
+                title="Copiar enlace" style={{
+                  width: 44, height: 44, borderRadius: '50%', background: c,
+                  color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: 'var(--tt-shadow-card)', border: 'none', cursor: 'pointer',
+                }}><Icon name={n} size={16} /></button>
+            ) : (
               <a key={n} href={href} target="_blank" rel="noopener noreferrer" style={{
                 width: 44, height: 44, borderRadius: '50%', background: c,
                 color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -228,34 +331,36 @@ export default function ArticlePage({ theme, setTheme }) {
               }}><Icon name={n} size={16} /></a>
             ))}
             <button
-              onClick={() => shareNative(a.title, articleUrl, onCopied)}
+              onClick={() => copyLink(articleUrl, onCopied)}
               title={copied ? '¡Copiado!' : 'Copiar enlace'}
               style={{
-                width: 44, height: 44, borderRadius: '50%', background: copied ? 'var(--tt-green)' : 'var(--tt-ink)',
-                color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 44, height: 44, borderRadius: '50%',
+                background: copied ? 'var(--tt-green)' : 'var(--tt-paper-2)',
+                color: copied ? 'white' : 'var(--tt-ink)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: 'var(--tt-shadow-card)', border: 'none', cursor: 'pointer',
-                transition: 'background 0.2s',
+                transition: 'background 0.2s, color 0.2s',
               }}
-            ><Icon name="share" size={16} /></button>
+            ><Icon name="link" size={16} /></button>
           </div>
 
           {/* Main content */}
           <article style={{ maxWidth: 680 }}>
             {/* Key points */}
-            <aside style={{ background: 'var(--tt-green-soft)', border: '1px solid var(--tt-green-line)', borderRadius: 'var(--tt-r-lg)', padding: '24px 28px', marginBottom: 40 }}>
+            {a.catSlug !== 'videos' && <aside style={{ background: 'var(--tt-green-soft)', border: '1px solid var(--tt-green-line)', borderRadius: 'var(--tt-r-lg)', padding: '24px 28px', marginBottom: 40 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--tt-green)', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>★</span>
                 <span className="tt-eyebrow">Lo esencial · {a.readTime} de lectura</span>
               </div>
               <ul style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {(a.body || []).filter(b => b.type === 'p').slice(0, 4).map((b, i) => (
+                {(a.content ? extractKeyPoints(a.content) : (a.body || []).filter(b => b.type === 'p').map(b => b.text.slice(0, 160))).map((point, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, lineHeight: 1.45 }}>
                     <span style={{ flexShrink: 0, fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', color: 'var(--tt-green)', fontSize: 16, lineHeight: 1.2, minWidth: 16 }}>0{i + 1}</span>
-                    <span>{b.text.slice(0, 120)}{b.text.length > 120 ? '…' : ''}</span>
+                    <span>{point}</span>
                   </li>
                 ))}
               </ul>
-            </aside>
+            </aside>}
 
             {/* Body */}
             {(a.body || []).map((b, i) => {
@@ -285,8 +390,14 @@ export default function ArticlePage({ theme, setTheme }) {
             {/* If content is HTML, render it */}
             {!a.body?.length && a.content && (
               <div
+                className="tt-article-body"
                 style={{ fontFamily: 'var(--tt-font-serif)', fontSize: 19, lineHeight: 1.55, color: 'var(--tt-ink)' }}
-                dangerouslySetInnerHTML={{ __html: a.content }}
+                onClick={e => {
+  if (e.target.tagName === 'IMG') { e.preventDefault(); setZoomSrc(e.target.src); return; }
+  const block = e.target.closest('.tt-related-block');
+  if (block) { e.preventDefault(); navigate(`/${block.dataset.slug}`); }
+}}
+                dangerouslySetInnerHTML={{ __html: injectRelatedBlocks(a.content) }}
               />
             )}
 
@@ -306,20 +417,6 @@ export default function ArticlePage({ theme, setTheme }) {
               ) : null;
             })()}
 
-            {/* Author bio */}
-            <div style={{ marginTop: 40, padding: '24px 24px 22px', background: 'var(--tt-ink)', color: 'white', borderRadius: 'var(--tt-r-lg)', display: 'grid', gridTemplateColumns: '56px 1fr auto', gap: 20, alignItems: 'center' }}>
-              <span style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--tt-green-vivid)', color: 'var(--tt-ink)', fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', fontSize: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(a.author || 'T').charAt(0)}
-              </span>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--tt-green-vivid)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Sobre el autor</div>
-                <div style={{ fontFamily: 'var(--tt-font-display)', fontSize: 24, fontStyle: 'italic' }}>{a.author}</div>
-                {a.authorRole && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{a.authorRole}</div>}
-              </div>
-              <button className="tt-btn" style={{ background: 'var(--tt-green-vivid)', color: 'var(--tt-ink)' }}>
-                Ver más notas <Icon name="arrow" size={12} />
-              </button>
-            </div>
           </article>
 
           {/* Sidebar */}
@@ -390,37 +487,36 @@ export default function ArticlePage({ theme, setTheme }) {
       </section>
 
       {/* Meta row */}
-      <div style={{ background: 'var(--tt-paper)', padding: '16px', borderBottom: '1px solid var(--tt-line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tt-green-vivid)', color: 'var(--tt-ink)', fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', fontSize: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          {(a.author || 'T').charAt(0)}
-        </span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>{a.author}</div>
-          <div style={{ fontSize: 11, color: 'var(--tt-ink-faint)' }}>
-            {a.date} · {a.readTime}
-            {fmtViews(a.views) && <> · <Icon name="eye" size={11} style={{ verticalAlign: 'middle' }} /> {fmtViews(a.views)}</>}
-          </div>
+      <div style={{ background: 'var(--tt-paper)', padding: '12px 16px', borderBottom: '1px solid var(--tt-line)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, fontSize: 11, color: 'var(--tt-ink-faint)' }}>
+          {a.date} · {a.readTime}
+          {fmtViews(a.views) && <> · <Icon name="eye" size={11} style={{ verticalAlign: 'middle' }} /> {fmtViews(a.views)}</>}
         </div>
-        <a href={shareUrls.whatsapp} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tt-green)', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+        <a href={shareUrls.whatsapp} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: '#25D366', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
           <Icon name="whatsapp" size={16} />
         </a>
-        <button onClick={() => shareNative(a.title, articleUrl, onCopied)} style={{ width: 36, height: 36, borderRadius: '50%', background: copied ? 'var(--tt-green)' : 'var(--tt-paper-2)', color: copied ? 'white' : 'var(--tt-ink)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
-          <Icon name="share" size={15} />
+        <a href={shareUrls.facebook} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: '#1877F2', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+          <Icon name="facebook" size={16} />
+        </a>
+        <button onClick={() => copyLink(articleUrl, onCopied)} title={copied ? '¡Copiado!' : 'Copiar enlace'} style={{ width: 36, height: 36, borderRadius: '50%', background: copied ? 'var(--tt-green)' : 'var(--tt-paper-2)', color: copied ? 'white' : 'var(--tt-ink)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}>
+          <Icon name="link" size={15} />
         </button>
       </div>
 
       {/* Key points */}
-      <aside style={{ margin: 16, background: 'var(--tt-green-soft)', border: '1px solid var(--tt-green-line)', borderRadius: 'var(--tt-r-lg)', padding: 18 }}>
-        <div className="tt-eyebrow" style={{ marginBottom: 12 }}>Lo esencial · {a.readTime}</div>
-        <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {(a.body || []).filter(b => b.type === 'p').slice(0, 3).map((b, i) => (
-            <li key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.45 }}>
-              <span style={{ fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', color: 'var(--tt-green)', fontSize: 14 }}>0{i + 1}</span>
-              <span>{b.text.slice(0, 100)}{b.text.length > 100 ? '…' : ''}</span>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      {a.catSlug !== 'videos' && (
+        <aside style={{ margin: 16, background: 'var(--tt-green-soft)', border: '1px solid var(--tt-green-line)', borderRadius: 'var(--tt-r-lg)', padding: 18 }}>
+          <div className="tt-eyebrow" style={{ marginBottom: 12 }}>Lo esencial · {a.readTime}</div>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(a.content ? extractKeyPoints(a.content) : (a.body || []).filter(b => b.type === 'p').map(b => b.text.slice(0, 160))).slice(0, 2).map((point, i) => (
+              <li key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.45 }}>
+                <span style={{ fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', color: 'var(--tt-green)', fontSize: 14 }}>0{i + 1}</span>
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
 
       {/* Body */}
       <article style={{ padding: '12px 20px' }}>
@@ -446,7 +542,16 @@ export default function ArticlePage({ theme, setTheme }) {
         })}
 
         {!a.body?.length && a.content && (
-          <div style={{ fontFamily: 'var(--tt-font-serif)', fontSize: 17, lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: a.content }} />
+          <div
+            className="tt-article-body"
+            style={{ fontFamily: 'var(--tt-font-serif)', fontSize: 17, lineHeight: 1.55 }}
+            onClick={e => {
+  if (e.target.tagName === 'IMG') { e.preventDefault(); setZoomSrc(e.target.src); return; }
+  const block = e.target.closest('.tt-related-block');
+  if (block) { e.preventDefault(); navigate(`/${block.dataset.slug}`); }
+}}
+            dangerouslySetInnerHTML={{ __html: injectRelatedBlocks(a.content) }}
+          />
         )}
       </article>
 
@@ -476,16 +581,52 @@ export default function ArticlePage({ theme, setTheme }) {
 
       <Footer />
 
+      {/* Image lightbox */}
+      {zoomSrc && (
+        <div
+          onClick={() => setZoomSrc(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <img
+            src={zoomSrc}
+            alt=""
+            style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 4 }}
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setZoomSrc(null)}
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              width: 40, height: 40, borderRadius: 999,
+              background: 'rgba(255,255,255,0.12)', border: 'none',
+              color: 'white', fontSize: 22, lineHeight: 1,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >×</button>
+        </div>
+      )}
+
       {/* Sticky bottom share bar */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 30, background: 'var(--tt-paper)', borderTop: '1px solid var(--tt-line)', padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center', boxShadow: '0 -4px 20px rgba(14,17,22,0.06)' }}>
         <a href={shareUrls.whatsapp} target="_blank" rel="noopener noreferrer" style={{ flex: 1, height: 42, borderRadius: 'var(--tt-r-pill)', background: '#25D366', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 500, fontSize: 13, textDecoration: 'none' }}>
-          <Icon name="whatsapp" size={16} /> Compartir por WhatsApp
+          <Icon name="whatsapp" size={16} /> WhatsApp
         </a>
         <a href={shareUrls.facebook} target="_blank" rel="noopener noreferrer" style={{ width: 42, height: 42, borderRadius: '50%', background: '#1877F2', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
           <Icon name="facebook" size={16} />
         </a>
-        <button onClick={() => shareNative(a.title, articleUrl, onCopied)} style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--tt-line-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: copied ? 'var(--tt-green)' : 'transparent', color: copied ? 'white' : 'inherit', transition: 'all 0.2s', cursor: 'pointer' }}>
-          <Icon name="share" size={16} />
+        <button onClick={() => copyLink(articleUrl, onCopied)} title="Copiar enlace — Instagram" style={{ width: 42, height: 42, borderRadius: '50%', background: '#E1306C', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}>
+          <Icon name="instagram" size={16} />
+        </button>
+        <button onClick={() => copyLink(articleUrl, onCopied)} title="Copiar enlace — TikTok" style={{ width: 42, height: 42, borderRadius: '50%', background: '#1a1a1a', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}>
+          <Icon name="tiktok" size={16} />
+        </button>
+        <button onClick={() => copyLink(articleUrl, onCopied)} title={copied ? '¡Copiado!' : 'Copiar enlace'} style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--tt-line-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: copied ? 'var(--tt-green)' : 'transparent', color: copied ? 'white' : 'inherit', transition: 'background 0.2s, color 0.2s', cursor: 'pointer' }}>
+          <Icon name="link" size={16} />
         </button>
       </div>
     </div>

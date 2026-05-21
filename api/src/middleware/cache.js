@@ -8,6 +8,9 @@ const cache = new NodeCache({ checkperiod: 30 });
 // Registry: path → async function that returns fresh data
 const revalidators = new Map();
 const revalidating  = new Set();
+// In-flight coalescing: si dos requests llegan al mismo tiempo con cache miss,
+// el segundo espera el resultado del primero en lugar de ir a WordPress también.
+const inFlight = new Map();
 
 function registerRevalidator(path, fn) {
   revalidators.set(path, fn);
@@ -49,10 +52,21 @@ const cacheMiddleware = (ttl) => (req, res, next) => {
     return res.json(data);
   }
 
-  // Cache miss — monkey-patch res.json para guardar antes de enviar
+  // Cache miss — si ya hay un request en vuelo para esta misma key, esperarlo
+  if (inFlight.has(key)) {
+    return inFlight.get(key).then(payload => res.json(payload)).catch(() => next());
+  }
+
+  // Primer request para esta key: monkey-patch res.json, registrar promesa en vuelo
+  let resolveInflight;
+  const inflightPromise = new Promise(r => { resolveInflight = r; });
+  inFlight.set(key, inflightPromise);
+
   const originalJson = res.json.bind(res);
   res.json = (payload) => {
     cache.set(key, payload, ttl || CACHE_TTL);
+    inFlight.delete(key);
+    resolveInflight(payload);
     return originalJson(payload);
   };
 

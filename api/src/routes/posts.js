@@ -35,15 +35,12 @@ function mapPost(post) {
 
   // Dates
   const dateObj = new Date(post.date);
-  const dateStr = dateObj.toLocaleDateString('es-VE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dateStr = `${dateObj.getDate()} ${MONTHS_ES[dateObj.getMonth()]}, ${dateObj.getFullYear()}`;
 
   // Estimate read time from content word count
   const wordCount = (post.content?.rendered || '').replace(/<[^>]+>/g, '').split(/\s+/).length;
-  const readTime = `${Math.max(1, Math.round(wordCount / 200))} min`;
+  const readTime = `${Math.max(4, Math.round(wordCount / 200))} min`;
 
   // Excerpt — strip HTML tags
   const excerpt = (post.excerpt?.rendered || '')

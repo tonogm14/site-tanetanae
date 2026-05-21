@@ -12,7 +12,7 @@ const MostReadBox = ({ stories = [] }) => (
         fontFamily: 'var(--tt-font-display)',
         fontSize: 24, lineHeight: 1, fontWeight: 400,
       }}>
-        Lo más <em style={{ color: 'var(--tt-green)' }}>leído</em>
+        Otras <em style={{ color: 'var(--tt-green)' }}>noticias</em>
       </h3>
       <span style={{
         fontFamily: 'var(--tt-font-sans)', fontSize: 10,
@@ -20,7 +20,7 @@ const MostReadBox = ({ stories = [] }) => (
         textTransform: 'uppercase', color: 'var(--tt-ink-muted)',
         background: 'var(--tt-paper-2)', padding: '3px 8px',
         borderRadius: 'var(--tt-r-pill)',
-      }}>Semana</span>
+      }}>Hoy</span>
     </div>
     {stories.map((s, idx) => (
       <StoryRow key={s.id} story={s} index={idx + 1} />

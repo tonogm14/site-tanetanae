@@ -6,12 +6,10 @@ import HeaderMobile from '../components/HeaderMobile.jsx';
 import Footer from '../components/Footer.jsx';
 import Icon from '../components/Icon.jsx';
 import { SkeletonCard } from '../components/LoadingSkeleton.jsx';
-import { searchPosts } from '../api/wordpress.js';
+import { searchPosts, fetchTrendingTags } from '../api/wordpress.js';
 
 const PER_PAGE = 10;
 const WINDOW   = 9;
-
-const TRENDING_TAGS = ['#Tucupita', '#LoaTamaronis', '#Deportes2026', '#LácteosDelta', '#Sucesos', '#TenisDeMesa'];
 
 // ── Pagination (same logic as CategoryPage) ───────────────
 const Pagination = ({ page, totalPages, onPage }) => {
@@ -64,16 +62,17 @@ export default function SearchPage({ theme, setTheme }) {
   const [isMobile, setIsMobile]       = useState(window.innerWidth < 768);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [query, setQuery]             = useState(searchParams.get('q') || '');
-  const [searchTerm, setSearchTerm]   = useState(searchParams.get('q') || '');
-  const [page, setPage]               = useState(() => {
-    const p = parseInt(searchParams.get('page') || '1', 10);
-    return isNaN(p) || p < 1 ? 1 : p;
-  });
-  const [results, setResults]         = useState([]);
-  const [total, setTotal]             = useState(0);
-  const [totalPages, setTotalPages]   = useState(1);
-  const [loading, setLoading]         = useState(false);
+  const [query, setQuery]           = useState(searchParams.get('q') || '');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [results, setResults]       = useState([]);
+  const [total, setTotal]           = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading]       = useState(false);
+  const [trendingTags, setTrendingTags] = useState([]);
+
+  // page derivado de la URL — fuente de verdad es siempre el URL
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
+  const page    = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
   const inputRef    = useRef(null);
   const debounceRef = useRef(null);
@@ -86,34 +85,32 @@ export default function SearchPage({ theme, setTheme }) {
 
   useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, []);
 
-  // Debounce: query → searchTerm + reset page to 1
+  useEffect(() => { fetchTrendingTags().then(tags => { if (tags.length) setTrendingTags(tags); }); }, []);
+
+  // Debounce: actualiza searchTerm y limpia page de la URL
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setSearchTerm(query);
-      setPage(1);
-      setSearchParams(prev => {
-        const next = new URLSearchParams(prev);
-        next.delete('page');
-        return next;
-      });
+      setSearchParams(
+        query ? { q: query } : {},
+        { replace: true }
+      );
     }, 400);
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  // Fetch when searchTerm or page changes
+  // Fetch cuando cambia searchTerm o page (leído del URL)
   useEffect(() => {
     if (!searchTerm || searchTerm.trim().length < 2) {
       setResults([]);
       setTotal(0);
       setTotalPages(1);
-      setSearchParams({});
       return;
     }
 
     let cancelled = false;
     setLoading(true);
-    setSearchParams(page === 1 ? { q: searchTerm } : { q: searchTerm, page: String(page) });
 
     searchPosts(searchTerm.trim(), page).then(({ results: r, total: t }) => {
       if (cancelled) return;
@@ -127,7 +124,6 @@ export default function SearchPage({ theme, setTheme }) {
   }, [searchTerm, page]);
 
   const goToPage = (p) => {
-    setPage(p);
     setSearchParams(p === 1 ? { q: searchTerm } : { q: searchTerm, page: String(p) });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -176,18 +172,18 @@ export default function SearchPage({ theme, setTheme }) {
         </div>
 
         {/* Trending tags */}
-        {!query && (
+        {!query && trendingTags.length > 0 && (
           <div>
             <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)', marginBottom: 12 }}>
               Trending esta semana
             </h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {TRENDING_TAGS.map((t, i) => (
-                <button key={t} onClick={() => setQuery(t.replace('#', ''))} style={{
+              {trendingTags.map((t, i) => (
+                <button key={t} onClick={() => setQuery(t)} style={{
                   padding: '8px 16px', borderRadius: 999,
-                  background: i === 0 ? 'var(--tt-ink)' : 'var(--tt-white)',
-                  color: i === 0 ? 'white' : 'var(--tt-ink)',
-                  border: `1px solid ${i === 0 ? 'var(--tt-ink)' : 'var(--tt-line)'}`,
+                  background: i === 0 ? 'var(--tt-ink)' : 'var(--tt-paper-2)',
+                  color: i === 0 ? 'var(--tt-paper)' : 'var(--tt-ink)',
+                  border: `1px solid ${i === 0 ? 'var(--tt-ink)' : 'var(--tt-line-strong)'}`,
                   fontSize: 13, fontWeight: 500, cursor: 'pointer',
                   fontFamily: 'var(--tt-font-sans)',
                 }}>{t}</button>

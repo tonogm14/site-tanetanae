@@ -7,10 +7,15 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   padding: 0;
   background: #FAF9F5;
+  overflow-x: hidden;
 }
 
 :root {
@@ -380,6 +385,70 @@ body {
 
 /* ── Breaking bar pulse ── */
 @keyframes ttPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── Article body: WordPress content ── */
+.tt-article-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--tt-r-md);
+  cursor: pointer;
+  margin: 24px auto;
+}
+.tt-article-body a { cursor: pointer; }
+.tt-article-body figure {
+  margin: 28px 0;
+}
+.tt-article-body figcaption {
+  font-size: 12px;
+  color: var(--tt-ink-muted);
+  margin-top: 6px;
+  text-align: center;
+  font-family: var(--tt-font-sans);
+}
+.tt-article-body .tt-related-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--tt-green-soft);
+  border-left: 4px solid var(--tt-green);
+  border-radius: var(--tt-r-md);
+  margin: 28px 0;
+  cursor: pointer;
+  user-select: none;
+}
+.tt-related-block:hover { filter: brightness(0.96); }
+.tt-related-label {
+  display: block;
+  font-family: var(--tt-font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tt-green);
+  margin-bottom: 4px;
+}
+.tt-related-title {
+  font-family: var(--tt-font-display);
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--tt-ink);
+  flex: 1;
+}
+.tt-related-arrow {
+  font-size: 20px;
+  color: var(--tt-green);
+  flex-shrink: 0;
+}
+
+.tt-article-body .aligncenter { margin-left: auto; margin-right: auto; }
+.tt-article-body .alignleft   { float: left;  margin-right: 20px; margin-bottom: 8px; max-width: 50%; }
+.tt-article-body .alignright  { float: right; margin-left: 20px;  margin-bottom: 8px; max-width: 50%; }
+@media (max-width: 767px) {
+  .tt-article-body .alignleft,
+  .tt-article-body .alignright { float: none; max-width: 100%; margin-left: 0; margin-right: 0; }
+}
 
 /* ── Responsive helpers ── */
 @media (max-width: 767px) {
