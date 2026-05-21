@@ -236,3 +236,45 @@ export async function fetchBanners() {
     return {};
   }
 }
+
+export async function fetchRecent({ day = 'today', page = 1, perPage = 12, fill = false } = {}) {
+  try {
+    const params = { day, page, per_page: perPage };
+    if (fill) params.fill = 'true';
+    const { data } = await client.get('/recent', { params });
+    return { posts: data.posts || [], total: data.total || 0, totalPages: data.totalPages || 1 };
+  } catch {
+    return { posts: [], total: 0, totalPages: 1 };
+  }
+}
+
+export async function fetchOtherPosts() {
+  try {
+    const [todayRes, yestRes] = await Promise.all([
+      fetchRecent({ day: 'today',     page: 1, perPage: 12 }),
+      fetchRecent({ day: 'yesterday', page: 1, perPage: 12 }),
+    ]);
+    const all = [...todayRes.posts, ...yestRes.posts];
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    return all.slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchComments(postId) {
+  try {
+    const { data } = await client.get(`/comments/${postId}`);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function submitComment(postId, { author_name, content }) {
+  const { data } = await client.post(`/comments/${postId}`, { author_name, content });
+  return data;
+}

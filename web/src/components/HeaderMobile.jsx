@@ -5,26 +5,27 @@ import Icon from './Icon.jsx';
 import { SOCIALS } from '../lib/socials.js';
 
 const NAV_MOBILE = [
-  { label: 'Inicio',            slug: null },
-  { label: 'Sucesos',           slug: 'sucesos' },
-  { label: 'Política',          slug: 'politica' },
-  { label: 'Deportes',          slug: 'deportes' },
-  { label: 'Tucupita',          slug: 'tucupita' },
-  { label: 'Cultura',           slug: 'cultura' },
-  { label: 'Salud',             slug: 'salud' },
-  { label: 'Indígenas',         slug: 'indigenas' },
-  { label: 'Trinidad y Tobago', slug: 'trinidad-y-tobago' },
-  { label: 'Opinión',           slug: 'opinion' },
-  { label: 'Especiales',        slug: 'especiales' },
+  { label: 'Inicio',            href: '/' },
+  { label: 'Ayer y Hoy',        href: '/tanetanae-noticias-de-ayer-y-hoy', special: true },
+  { label: 'Sucesos',           href: '/categoria/sucesos' },
+  { label: 'Política',          href: '/categoria/politica' },
+  { label: 'Deportes',          href: '/categoria/deportes' },
+  { label: 'Tucupita',          href: '/categoria/tucupita' },
+  { label: 'Cultura',           href: '/categoria/cultura' },
+  { label: 'Salud',             href: '/categoria/salud' },
+  { label: 'Indígenas',         href: '/categoria/indigenas' },
+  { label: 'Trinidad y Tobago', href: '/categoria/trinidad-y-tobago' },
+  { label: 'Opinión',           href: '/categoria/opinion' },
+  { label: 'Especiales',        href: '/categoria/especiales' },
 ];
 
 const PILL_TABS = [
-  { label: 'Recientes', slug: null },
-  { label: 'Sucesos',   slug: 'sucesos' },
-  { label: 'Política',  slug: 'politica' },
-  { label: 'Deportes',  slug: 'deportes' },
-  { label: 'Tucupita',  slug: 'tucupita' },
-  { label: 'Cultura',   slug: 'cultura' },
+  { label: 'Recientes', href: '/' },
+  { label: 'Ayer y Hoy', href: '/tanetanae-noticias-de-ayer-y-hoy', special: true },
+  { label: 'Sucesos',   href: '/categoria/sucesos' },
+  { label: 'Deportes',  href: '/categoria/deportes' },
+  { label: 'Indígenas', href: '/categoria/indigenas' },
+  { label: 'Video',     href: '/categoria/videos' },
 ];
 
 const HeaderMobile = ({ activeCategory = '', theme, setTheme }) => {
@@ -71,16 +72,17 @@ const HeaderMobile = ({ activeCategory = '', theme, setTheme }) => {
         {/* Category pill tabs */}
         <div style={{ display: 'flex', gap: 4, padding: '6px 12px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
           {PILL_TABS.map((item) => {
-            const isActive = item.slug === activeCategory || (!activeCategory && item.slug === null);
+            const isActive = item.href === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.href);
             return (
-              <Link key={item.label}
-                to={item.slug ? `/categoria/${item.slug}` : '/'}
+              <Link key={item.label} to={item.href}
                 style={{
                   padding: '6px 12px', fontSize: 12,
                   fontWeight: isActive ? 600 : 500,
-                  color: isActive ? 'var(--tt-paper)' : 'var(--tt-ink-muted)',
-                  background: isActive ? 'var(--tt-ink)' : 'transparent',
-                  border: isActive ? 'none' : '1px solid var(--tt-line)',
+                  color: isActive ? 'var(--tt-paper)' : item.special ? 'var(--tt-green)' : 'var(--tt-ink-muted)',
+                  background: isActive ? (item.special ? 'var(--tt-green-vivid)' : 'var(--tt-ink)') : 'transparent',
+                  border: isActive ? 'none' : `1px solid ${item.special ? 'var(--tt-green-line)' : 'var(--tt-line)'}`,
                   borderRadius: 'var(--tt-r-pill)',
                   whiteSpace: 'nowrap', textDecoration: 'none',
                 }}>
@@ -122,15 +124,17 @@ const HeaderMobile = ({ activeCategory = '', theme, setTheme }) => {
         {/* Nav links */}
         <nav style={{ flex: 1, padding: '12px 0' }}>
           {NAV_MOBILE.map((item) => {
-            const href = item.slug ? `/categoria/${item.slug}` : '/';
-            const isActive = item.slug === activeCategory || (!activeCategory && item.slug === null);
+            const isActive = item.href === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.href);
+            const accent = item.special ? 'var(--tt-green-vivid)' : 'var(--tt-green)';
             return (
-              <Link key={item.label} to={href} style={{
+              <Link key={item.label} to={item.href} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '13px 20px',
                 fontSize: 15, fontWeight: isActive ? 600 : 400,
-                color: isActive ? 'var(--tt-green)' : 'var(--tt-ink)',
-                borderLeft: isActive ? '3px solid var(--tt-green)' : '3px solid transparent',
+                color: isActive ? accent : 'var(--tt-ink)',
+                borderLeft: isActive ? `3px solid ${accent}` : '3px solid transparent',
                 textDecoration: 'none',
                 background: isActive ? 'var(--tt-green-soft)' : 'transparent',
               }}>

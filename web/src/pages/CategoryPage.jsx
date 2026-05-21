@@ -9,7 +9,7 @@ import MostReadBox from '../components/MostReadBox.jsx';
 import BannerSlot from '../components/BannerSlot.jsx';
 import Footer from '../components/Footer.jsx';
 import { SkeletonCard } from '../components/LoadingSkeleton.jsx';
-import { fetchPosts, fetchBreaking, fetchMostRead, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
+import { fetchPosts, fetchBreaking, fetchOtherPosts, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
 
 const WINDOW = 9;
 
@@ -123,7 +123,7 @@ export default function CategoryPage({ theme, setTheme }) {
     Promise.allSettled([
       fetchPosts({ page, perPage: 12, category: slug }),
       fetchBreaking(),
-      fetchMostRead(),
+      fetchOtherPosts(),
     ]).then(([postsResult, breakingResult, mostReadResult]) => {
       if (cancelled) return;
       if (postsResult.status === 'fulfilled') {

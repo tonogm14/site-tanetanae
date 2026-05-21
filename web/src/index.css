@@ -11,6 +11,10 @@ html {
   overflow-x: hidden;
 }
 
+@media (max-width: 767px) {
+  html { zoom: 1.06; }
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -392,7 +396,6 @@ body {
   height: auto;
   display: block;
   border-radius: var(--tt-r-md);
-  cursor: pointer;
   margin: 24px auto;
 }
 .tt-article-body a { cursor: pointer; }

@@ -17,12 +17,13 @@ import {
   PueblosDelDeltaBlock, InternacionalFronteraBlock,
   SucesosMobile, DeportesMobile,
   PueblosDelDeltaMobile, InternacionalFronteraMobile,
+  MasNoticiasMobile, FueronNoticiasMobile, VideosMobile,
 } from '../components/SectionBlocks.jsx';
-import { fetchHome, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
+import { fetchHome, fetchBanners, fetchOtherPosts, MOCK_DATA } from '../api/wordpress.js';
 import BannerSlot from '../components/BannerSlot.jsx';
 
 // ── Layout de escritorio ───────────────────────────────────
-const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
+const HomeDesktop = ({ data, loading, theme, setTheme, banners, otherPosts }) => {
 
   return (
     <div style={{ background: 'var(--tt-paper)' }}>
@@ -97,7 +98,7 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
         {/* ── Sidebar ── */}
         <aside style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
           <BannerSlot banner={banners['home-sidebar-top']} />
-          <MostReadBox stories={data.mostRead} />
+          <MostReadBox stories={otherPosts} />
 
           <SeccionNoticias
             posts={data.video}
@@ -146,7 +147,7 @@ const HomeDesktop = ({ data, loading, theme, setTheme, banners }) => {
 };
 
 // ── Layout móvil ───────────────────────────────────────────
-const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
+const HomeMobile = ({ data, loading, theme, setTheme, banners, otherPosts }) => {
   const [hi, setHi]           = useState(0);
   const touchX                = useRef(null);
   const pauseRef              = useRef(false);
@@ -248,6 +249,11 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
         ))}
       </section>
 
+      {/* Más Noticias — mobile */}
+      <section style={{ padding: '8px 16px' }}>
+        <MasNoticiasMobile posts={data.masNoticias || []} loading={loading} />
+      </section>
+
       {/* Banner mas-noticias — mobile */}
       <BannerSlot banner={banners['mas-noticias']} style={{ margin: '16px 0', padding: '0 16px' }} />
 
@@ -264,12 +270,17 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
       {/* Banner sucesos-deportes — mobile */}
       <BannerSlot banner={banners['sucesos-deportes']} style={{ margin: '16px 0', padding: '0 16px' }} />
 
-      <section style={{ padding: '32px 16px 8px' }}>
-        <MostReadBox stories={data.mostRead.slice(0, 4)} />
+      {/* Fueron Noticias — mobile */}
+      <section style={{ padding: '8px 16px' }}>
+        <FueronNoticiasMobile posts={data.fueronNoticias || []} loading={loading} />
       </section>
 
       {/* Banner fueron-noticias — mobile */}
       <BannerSlot banner={banners['fueron-noticias']} style={{ margin: '16px 0', padding: '0 16px' }} />
+
+      <section style={{ padding: '32px 16px 8px' }}>
+        <MostReadBox stories={otherPosts.slice(0, 4)} />
+      </section>
 
       {/* Pueblos del Delta */}
       <section style={{ padding: '8px 16px' }}>
@@ -293,14 +304,7 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
 
       {/* Video */}
       <section style={{ padding: '8px 16px' }}>
-        <SeccionNoticias
-          posts={data.video}
-          loading={loading}
-          titulo="Video"
-          variant="list"
-          isMobile
-          categoria="videos"
-        />
+        <VideosMobile posts={data.video} loading={loading} />
       </section>
 
       {/* Banner videos — mobile */}
@@ -308,6 +312,10 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners }) => {
 
       <section style={{ padding: '8px 16px 24px' }}>
         <WhatsappBox />
+      </section>
+
+      <section style={{ padding: '0 16px 32px' }}>
+        <CategoriesBox cats={data.categories} />
       </section>
 
       <Footer />
@@ -335,6 +343,7 @@ export default function HomePage({ theme, setTheme }) {
   });
   const [loading, setLoading] = useState(true);
   const [banners, setBanners] = useState({});
+  const [otherPosts, setOtherPosts] = useState([]);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -351,10 +360,11 @@ export default function HomePage({ theme, setTheme }) {
       }
     });
     fetchBanners().then(setBanners);
+    fetchOtherPosts().then(p => { if (!cancelled) setOtherPosts(p); });
     return () => { cancelled = true; };
   }, []);
 
   return isMobile
-    ? <HomeMobile data={data} loading={loading} theme={theme} setTheme={setTheme} banners={banners} />
-    : <HomeDesktop data={data} loading={loading} theme={theme} setTheme={setTheme} banners={banners} />;
+    ? <HomeMobile data={data} loading={loading} theme={theme} setTheme={setTheme} banners={banners} otherPosts={otherPosts} />
+    : <HomeDesktop data={data} loading={loading} theme={theme} setTheme={setTheme} banners={banners} otherPosts={otherPosts} />;
 }

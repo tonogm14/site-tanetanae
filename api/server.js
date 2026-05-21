@@ -37,6 +37,8 @@ app.use('/categories', require('./src/routes/categories'));
 app.use('/search', require('./src/routes/search'));
 app.use('/tags', require('./src/routes/tags'));
 app.use('/banners', require('./src/routes/banners'));
+app.use('/comments', require('./src/routes/comments'));
+app.use('/recent', require('./src/routes/recent'));
 
 // ── Category ID cache (warmed at startup) ─────────────────
 const catIdCache = new Map();
@@ -127,6 +129,7 @@ function mapPost(post) {
     link: post.link,
     content: post.content?.rendered || '',
     tags: (embedded['wp:term']?.[1] || []).map(t => t.name),
+    commentStatus: post.comment_status || 'closed',
   };
 }
 

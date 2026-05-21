@@ -1,21 +1,23 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import TTLogo from './TTLogo.jsx';
 import Icon from './Icon.jsx';
 import { SOCIALS } from '../lib/socials.js';
 
 const NAV = [
-  { label: 'Inicio',            slug: '' },
-  { label: 'Sucesos',           slug: 'sucesos' },
-  { label: 'Deportes',          slug: 'deportes' },
-  { label: 'Indígena',          slug: 'indigenas' },
-  { label: 'Trinidad y Tobago', slug: 'trinidad-y-tobago' },
-  { label: 'Video',             slug: 'videos' },
-  { label: 'Opinión',           slug: 'opinion' },
+  { label: 'Inicio',            href: '/' },
+  { label: 'Ayer y Hoy',        href: '/tanetanae-noticias-de-ayer-y-hoy', special: true },
+  { label: 'Sucesos',           href: '/categoria/sucesos' },
+  { label: 'Deportes',          href: '/categoria/deportes' },
+  { label: 'Indígena',          href: '/categoria/indigenas' },
+  { label: 'Trinidad y Tobago', href: '/categoria/trinidad-y-tobago' },
+  { label: 'Video',             href: '/categoria/videos' },
+  { label: 'Opinión',           href: '/categoria/opinion' },
 ];
 
 const Header = ({ compact = false, activeCategory = '', theme, setTheme }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isDark = theme === 'dark';
 
   return (
@@ -78,18 +80,22 @@ const Header = ({ compact = false, activeCategory = '', theme, setTheme }) => {
         fontFamily: 'var(--tt-font-sans)', overflow: 'hidden',
       }}>
         {NAV.map((item) => {
-          const isActive = item.slug === activeCategory || (!activeCategory && item.slug === '');
+          const isActive = item.href === '/'
+            ? location.pathname === '/' && !activeCategory
+            : location.pathname.startsWith(item.href);
           return (
             <Link
               key={item.label}
-              to={item.slug ? `/categoria/${item.slug}` : '/'}
+              to={item.href}
               style={{
                 padding: '12px 16px',
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
                 letterSpacing: '0.01em',
-                color: isActive ? 'var(--tt-ink)' : 'var(--tt-ink-muted)',
-                borderBottom: isActive ? '2px solid var(--tt-green)' : '2px solid transparent',
+                color: isActive
+                  ? (item.special ? 'var(--tt-green-vivid)' : 'var(--tt-ink)')
+                  : (item.special ? 'var(--tt-green)' : 'var(--tt-ink-muted)'),
+                borderBottom: isActive ? `2px solid ${item.special ? 'var(--tt-green-vivid)' : 'var(--tt-green)'}` : '2px solid transparent',
                 marginBottom: -1,
                 transition: 'color 0.15s',
                 whiteSpace: 'nowrap',

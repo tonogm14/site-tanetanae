@@ -31,6 +31,8 @@ const Icon = ({ name, size = 18, stroke = 1.6 }) => {
     instagram:       (<><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" /></>),
     tiktok:          (<><path d="M9 3h2v2a3 3 0 0 0 3 3h2v2h-2a5 5 0 0 1-3-1v5a4 4 0 1 1-4-4V12a2 2 0 1 0 2 2V3Z" fill="currentColor" stroke="none" /></>),
     link:            (<><path d="M10 14a4 4 0 0 0 5.66 0l2-2a4 4 0 0 0-5.65-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-2 2a4 4 0 0 0 5.65 5.66l1-1" /></>),
+    email:           (<><rect x="3" y="6" width="18" height="13" rx="2" /><path d="m3 6 9 7 9-7" /></>),
+    print:           (<><path d="M6 9V4h12v5" /><rect x="3" y="9" width="18" height="9" rx="1" /><path d="M6 14h12M6 18h5" /></>),
     youtube:         (<><rect x="2.5" y="6" width="19" height="12" rx="3" /><path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none" /></>),
     location:        (<><path d="M12 22s7-7 7-12a7 7 0 1 0-14 0c0 5 7 12 7 12Z" /><circle cx="12" cy="10" r="2.5" /></>),
     flame:           (<><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-3 2-7 1 2 3 2 3-3Z" /></>),

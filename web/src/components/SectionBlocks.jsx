@@ -82,8 +82,7 @@ export const SucesosBlock = ({ posts = [], loading = false }) => {
             <span className="tt-chip" style={{ background: 'var(--tt-breaking)', color: 'white' }}>Sucesos</span>
             <span className="tt-meta">{main.date}</span>
           </div>
-          <h3 className="tt-headline" style={{ fontSize: 30, lineHeight: 1.05, marginBottom: 12 }}>{main.title}</h3>
-          {main.excerpt && <p className="tt-body" style={{ fontSize: 15 }}>{main.excerpt}</p>}
+          <h3 className="tt-headline" style={{ fontSize: 30, lineHeight: 1.05 }}>{main.title}</h3>
         </Link>
 
         {/* Secondary list */}
@@ -100,12 +99,7 @@ export const SucesosBlock = ({ posts = [], loading = false }) => {
                   <PostImg post={s} />
                 </div>
                 <div>
-                  <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginBottom: 6 }}>{s.title}</h4>
-                  {s.excerpt && (
-                    <p className="tt-body" style={{ fontSize: 13, color: 'var(--tt-ink-muted)' }}>
-                      {s.excerpt.length > 80 ? s.excerpt.slice(0, 80).trimEnd() + '…' : s.excerpt}
-                    </p>
-                  )}
+                  <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15 }}>{s.title}</h4>
                 </div>
               </article>
             </Link>
@@ -174,8 +168,7 @@ export const DeportesBlock = ({ posts = [], loading = false }) => {
             <span className="tt-chip">Deportes</span>
             <span className="tt-meta">{lead.date}</span>
           </div>
-          <h3 className="tt-headline" style={{ fontSize: 30, lineHeight: 1.05, marginBottom: 12 }}>{lead.title}</h3>
-          {lead.excerpt && <p className="tt-body" style={{ fontSize: 15 }}>{lead.excerpt}</p>}
+          <h3 className="tt-headline" style={{ fontSize: 30, lineHeight: 1.05 }}>{lead.title}</h3>
         </Link>
 
         {/* 2×2 grid */}
@@ -258,15 +251,9 @@ export const PueblosDelDeltaBlock = ({ posts = [], loading = false }) => {
               }}>{main.date}</span>
             )}
 
-            <h3 className="tt-headline" style={{ color: 'white', fontSize: 34, lineHeight: 1.05, marginBottom: 16, maxWidth: '28ch' }}>
+            <h3 className="tt-headline" style={{ color: 'white', fontSize: 34, lineHeight: 1.05, marginBottom: 22, maxWidth: '28ch' }}>
               {main.title}
             </h3>
-            {main.excerpt && (
-              <p style={{
-                fontFamily: 'var(--tt-font-sans)', fontSize: 14, lineHeight: 1.55,
-                color: 'rgba(255,255,255,0.7)', maxWidth: '56ch', marginBottom: 22,
-              }}>{main.excerpt}</p>
-            )}
 
             <span style={{ flex: 1 }} />
             <Link to={`/${main.slug}`} style={{
@@ -298,12 +285,7 @@ export const PueblosDelDeltaBlock = ({ posts = [], loading = false }) => {
                       fontSize: 9, fontWeight: 700, letterSpacing: '0.14em',
                       textTransform: 'uppercase', color: '#C48168', display: 'block', marginBottom: 6,
                     }}>Indígenas · {s.date}</span>
-                    <h4 className="tt-headline" style={{ color: 'white', fontSize: 15, lineHeight: 1.2, marginBottom: 6 }}>{s.title}</h4>
-                    {s.excerpt && (
-                      <p style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 12, lineHeight: 1.45, color: 'rgba(255,255,255,0.6)' }}>
-                        {s.excerpt.length > 80 ? s.excerpt.slice(0, 80).trimEnd() + '…' : s.excerpt}
-                      </p>
-                    )}
+                    <h4 className="tt-headline" style={{ color: 'white', fontSize: 19, lineHeight: 1.2 }}>{s.title}</h4>
                   </div>
                 </article>
               </Link>
@@ -373,7 +355,6 @@ const CountryColumn = ({ country, subtitle, colors, stories = [], categorySlug }
             <h4 className="tt-headline" style={{ fontSize: 20, lineHeight: 1.1, marginTop: 8, marginBottom: 8 }}>
               {lead.title}
             </h4>
-            {lead.excerpt && <p className="tt-body" style={{ fontSize: 13, lineHeight: 1.5 }}>{lead.excerpt}</p>}
           </div>
         </div>
       </Link>
@@ -480,8 +461,7 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-breaking)' }}>
           Sucesos · {main.date}
         </span>
-        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6, marginBottom: 8 }}>{main.title}</h3>
-        {main.excerpt && <p className="tt-body" style={{ fontSize: 14 }}>{main.excerpt}</p>}
+        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6 }}>{main.title}</h3>
       </Link>
 
       {rest.slice(0, 3).map(s => (
@@ -497,7 +477,7 @@ export const SucesosMobile = ({ posts = [], loading = false }) => {
             <div style={{
               fontFamily: 'var(--tt-font-mono)', fontSize: 10,
               color: 'var(--tt-breaking)', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 4,
-            }}>{s.time || s.date}</div>
+            }}>{s.date}</div>
             <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15 }}>{s.title}</h4>
           </div>
         </Link>
@@ -535,8 +515,7 @@ export const DeportesMobile = ({ posts = [], loading = false }) => {
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-green)' }}>
           Deportes · {lead.date}
         </span>
-        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6, marginBottom: 8 }}>{lead.title}</h3>
-        {lead.excerpt && <p className="tt-body" style={{ fontSize: 14 }}>{lead.excerpt}</p>}
+        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6 }}>{lead.title}</h3>
       </Link>
 
       {more.slice(0, 3).map(s => (
@@ -577,10 +556,7 @@ export const PueblosDelDeltaMobile = ({ posts = [], loading = false }) => {
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 10, marginBottom: 8 }}>{main.date}</div>
         )}
         <Link to={`/${main.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-          <h3 className="tt-headline" style={{ color: 'white', fontSize: 17, lineHeight: 1.2, marginBottom: 8 }}>{main.title}</h3>
-          {main.excerpt && (
-            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'rgba(255,255,255,0.7)', marginBottom: 16 }}>{main.excerpt}</p>
-          )}
+          <h3 className="tt-headline" style={{ color: 'white', fontSize: 17, lineHeight: 1.2, marginBottom: 16 }}>{main.title}</h3>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '10px 20px', borderRadius: 'var(--tt-r-pill)',
@@ -649,6 +625,97 @@ export const InternacionalFronteraMobile = ({ trinidadPosts = [], guyanaPosts = 
           />
         )}
       </div>
+    </section>
+  );
+};
+
+/* ── Helper para secciones móviles simples (Más Noticias, Fueron Noticias) ── */
+const SimpleMobile = ({ posts, title, accent = 'var(--tt-ink)', categorySlug }) => {
+  if (!posts.length) return null;
+  const [lead, ...rest] = posts;
+  return (
+    <section>
+      <div style={{ borderTop: `3px solid ${accent}`, paddingTop: 10, marginBottom: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <span style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: accent }}>Sección</span>
+          <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>{title}</h2>
+        </div>
+        {categorySlug && (
+          <Link to={`/categoria/${categorySlug}`} style={{ fontSize: 11, color: accent, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, paddingBottom: 4 }}>
+            Ver todas <Icon name="arrow" size={11} />
+          </Link>
+        )}
+      </div>
+
+      <Link to={`/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 14 }}>
+        <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden', marginBottom: 12, aspectRatio: '16/9' }}>
+          <PostImg post={lead} />
+        </div>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent }}>
+          {lead.cat} · {lead.date}
+        </span>
+        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12, marginTop: 6 }}>{lead.title}</h3>
+      </Link>
+
+      {rest.slice(0, 2).map(s => (
+        <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{
+          display: 'grid', gridTemplateColumns: '92px 1fr', gap: 12,
+          paddingBlock: 14, borderTop: '1px solid var(--tt-line)',
+          textDecoration: 'none', color: 'inherit', alignItems: 'start',
+        }}>
+          <div style={{ borderRadius: 6, overflow: 'hidden', aspectRatio: '1/1' }}>
+            <PostImg post={s} />
+          </div>
+          <div>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent }}>{s.cat}</span>
+            <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
+          </div>
+        </Link>
+      ))}
+    </section>
+  );
+};
+
+export const MasNoticiasMobile = ({ posts = [], loading = false }) =>
+  loading || !posts.length ? null : <SimpleMobile posts={posts} title="Más Noticias" accent="var(--tt-ink-muted)" />;
+
+export const FueronNoticiasMobile = ({ posts = [], loading = false }) =>
+  loading || !posts.length ? null : <SimpleMobile posts={posts} title="Fueron Noticias" accent="var(--tt-ink-muted)" />;
+
+export const VideosMobile = ({ posts = [], loading = false }) => {
+  if (loading || !posts.length) return null;
+  const [lead, ...more] = posts;
+
+  return (
+    <section>
+      <div style={{ borderTop: '3px solid var(--tt-ink)', paddingTop: 10, marginBottom: 14 }}>
+        <span style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)' }}>Sección</span>
+        <h2 style={{ fontFamily: 'var(--tt-font-display)', fontSize: 32, lineHeight: 1, fontWeight: 400, marginTop: 4 }}>Video</h2>
+      </div>
+
+      <Link to={`/${lead.slug}`} className="tt-card-link" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginBottom: 14 }}>
+        <div style={{ borderRadius: 'var(--tt-r-md)', overflow: 'hidden', marginBottom: 12, aspectRatio: '16/9', position: 'relative' }}>
+          <PostImg post={lead} />
+          <span style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.72)', color: 'white', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--tt-r-pill)', display: 'inline-flex', alignItems: 'center', gap: 4, letterSpacing: '0.04em' }}>▶ Video</span>
+        </div>
+        <h3 className="tt-headline" style={{ fontSize: 22, lineHeight: 1.12 }}>{lead.title}</h3>
+      </Link>
+
+      {more.slice(0, 3).map(s => (
+        <Link key={s.id} to={`/${s.slug}`} className="tt-card-link" style={{
+          display: 'grid', gridTemplateColumns: '92px 1fr', gap: 12,
+          paddingBlock: 14, borderTop: '1px solid var(--tt-line)',
+          textDecoration: 'none', color: 'inherit', alignItems: 'start',
+        }}>
+          <div style={{ borderRadius: 6, overflow: 'hidden', aspectRatio: '1/1' }}>
+            <PostImg post={s} />
+          </div>
+          <div>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tt-ink-muted)' }}>Video · {s.date}</span>
+            <h4 className="tt-headline" style={{ fontSize: 16, lineHeight: 1.15, marginTop: 4 }}>{s.title}</h4>
+          </div>
+        </Link>
+      ))}
     </section>
   );
 };

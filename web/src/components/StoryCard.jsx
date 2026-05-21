@@ -9,7 +9,7 @@ const TTImage = ({ tone, aspect = '16x9', style = {} }) => (
   />
 );
 
-const StoryCard = ({ story, size = 'md', showExcerpt = true }) => {
+const StoryCard = ({ story, size = 'md' }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 768);
@@ -65,11 +65,6 @@ const StoryCard = ({ story, size = 'md', showExcerpt = true }) => {
       <h3 className="tt-headline" style={{ fontSize: titleSize, lineHeight: 1.05 }}>
         {story.title}
       </h3>
-      {showExcerpt && !isMobile && story.excerpt && size !== 'sm' && (
-        <p className="tt-body" style={{ fontSize: 14, color: 'var(--tt-ink-muted)' }}>
-          {story.excerpt.length > 80 ? story.excerpt.slice(0, 80).trimEnd() + '…' : story.excerpt}
-        </p>
-      )}
       {story.author && size !== 'sm' && (
         <span className="tt-meta">Por {story.author}</span>
       )}
