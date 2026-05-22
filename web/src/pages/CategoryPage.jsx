@@ -185,11 +185,14 @@ export default function CategoryPage({ theme, setTheme }) {
         <CategoryHeader />
       </div>
 
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 16px' : '0 40px' }}>
+      <div style={isMobile ? { padding: '0 16px' } : { maxWidth: 1440, margin: '0 auto', padding: '0 40px' }}>
         <BannerSlot banner={banners['categoria-top']} />
       </div>
 
-      <section style={{ padding: isMobile ? '16px 16px' : '32px 40px', maxWidth: 1440, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: isMobile ? 32 : 56 }}>
+      <section style={isMobile
+        ? { padding: '16px 16px' }
+        : { padding: '32px 40px', maxWidth: 1440, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 300px', gap: 56 }
+      }>
         <div style={{ position: 'relative' }}>
           {/* Spinner de carga inicial */}
           {loading && posts.length === 0 && (
@@ -227,7 +230,10 @@ export default function CategoryPage({ theme, setTheme }) {
 
           {posts.length > 0 && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 28 }}>
+              <div style={isMobile
+                ? { display: 'flex', flexDirection: 'column', gap: 28 }
+                : { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 28 }
+              }>
                 {posts.map(post => (
                   <StoryCard key={post.id} story={post} />
                 ))}
@@ -251,7 +257,7 @@ export default function CategoryPage({ theme, setTheme }) {
         )}
       </section>
 
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 16px' : '0 40px' }}>
+      <div style={isMobile ? { padding: '0 16px' } : { maxWidth: 1440, margin: '0 auto', padding: '0 40px' }}>
         <BannerSlot banner={banners['categoria-bottom']} />
       </div>
 

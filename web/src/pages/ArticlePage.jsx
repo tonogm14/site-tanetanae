@@ -65,20 +65,29 @@ function copyLink(url, onCopied) {
   navigator.clipboard.writeText(url).then(onCopied).catch(() => {});
 }
 
+function makeRelatedBlock(slug, text) {
+  const clean = text.replace(/<[^>]+>/g, '').trim();
+  if (!clean) return null;
+  return `<div class="tt-related-block" data-slug="${slug}">
+    <span class="tt-related-label">Noticia relacionada</span>
+    <span class="tt-related-title">${clean}</span>
+    <span class="tt-related-arrow" aria-hidden="true">→</span>
+  </div>`;
+}
+
 function injectRelatedBlocks(html) {
   if (!html) return html;
-  return html.replace(
-    /<p[^>]*>\s*<a\s+href="https?:\/\/(?:www\.)?tanetanae\.com\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/p>/gi,
-    (_m, slug, text) => {
-      const clean = text.replace(/<[^>]+>/g, '').trim();
-      if (!clean) return _m;
-      return `<div class="tt-related-block" data-slug="${slug}">
-        <span class="tt-related-label">Noticia relacionada</span>
-        <span class="tt-related-title">${clean}</span>
-        <span class="tt-related-arrow" aria-hidden="true">→</span>
-      </div>`;
-    }
+  // WordPress embedded posts: <blockquote class="wp-embedded-content"><a href="...">title</a></blockquote>
+  let out = html.replace(
+    /<blockquote[^>]*class="[^"]*wp-embedded-content[^"]*"[^>]*>\s*<a\s+href="https?:\/\/(?:www\.)?tanetanae\.com\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/blockquote>/gi,
+    (_m, slug, text) => makeRelatedBlock(slug, text) || _m
   );
+  // Plain paragraph links to tanetanae.com
+  out = out.replace(
+    /<p[^>]*>\s*<a\s+href="https?:\/\/(?:www\.)?tanetanae\.com\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/p>/gi,
+    (_m, slug, text) => makeRelatedBlock(slug, text) || _m
+  );
+  return out;
 }
 
 export default function ArticlePage({ theme, setTheme }) {
@@ -485,41 +494,77 @@ export default function ArticlePage({ theme, setTheme }) {
       <HeaderMobile activeCategory={a.catSlug} theme={theme} setTheme={setTheme} />
 
       {/* Hero */}
-      <section style={{ position: 'relative', height: 480, background: 'var(--tt-ink)', color: 'white', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0 }}>
+      <section style={{ position: 'relative', background: 'var(--tt-ink)', color: 'white', overflow: 'hidden' }}>
+        {/* Image — fixed 260px, not flexible */}
+        <div style={{ position: 'relative', height: 260, flexShrink: 0 }}>
           {a.imgFull || a.imgUrl
             ? <img src={a.imgFull || a.imgUrl} alt={a.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <TTImage tone={a.img} style={{ height: '100%' }} aspect="" />
           }
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%)' }} />
+          {/* Breadcrumb */}
+          <div style={{ position: 'absolute', top: 14, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>
+              <Link to="/" style={{ color: 'rgba(255,255,255,0.5)' }}>Inicio · </Link>
+              <span style={{ color: 'var(--tt-green-vivid)' }}>{a.cat}</span>
+            </span>
+          </div>
         </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.9) 100%)' }} />
-        <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>
-            <Link to="/" style={{ color: 'rgba(255,255,255,0.5)' }}>Inicio · </Link>
-            <span style={{ color: 'var(--tt-green-vivid)' }}>{a.cat}</span>
-          </span>
-          <button style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="bookmark" size={15} />
-          </button>
-        </div>
-        <div style={{ position: 'absolute', inset: 'auto 0 0 0', padding: 20 }}>
+
+        {/* Title + meta — below the image, dark bg */}
+        <div style={{ padding: '20px 20px 24px', background: '#0E1116' }}>
           <span className="tt-chip" style={{ background: 'var(--tt-green-vivid)', color: 'var(--tt-ink)', marginBottom: 14, display: 'inline-block' }}>{a.cat}</span>
-          <h1 className="tt-headline" style={{ color: 'white', fontSize: 28, marginBottom: 14 }}>{a.title}</h1>
+          <h1 className="tt-headline" style={{ color: 'white', fontSize: 30, lineHeight: 1.05, marginBottom: 20 }}>{a.title}</h1>
+
+          {/* Author row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <span style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'var(--tt-green-vivid)', color: 'var(--tt-ink)',
+              fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', fontSize: 18,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>{(a.author || 'T').charAt(0)}</span>
+            <div>
+              <div style={{ fontWeight: 500, color: 'white', fontSize: 14 }}>{a.author}</div>
+              {a.authorRole && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{a.authorRole}</div>}
+            </div>
+          </div>
+
+          {/* Date / Lectura / Visitas */}
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Publicado</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{a.date}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Lectura</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{a.readTime}</span>
+            </div>
+            {fmtViews(a.views) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Visitas</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="eye" size={12} /> {fmtViews(a.views)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* Meta row */}
-      <div style={{ background: 'var(--tt-paper)', padding: '12px 16px', borderBottom: '1px solid var(--tt-line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, fontSize: 11, color: 'var(--tt-ink-faint)' }}>
-          {a.date} · {a.readTime}
-          {fmtViews(a.views) && <> · <Icon name="eye" size={11} style={{ verticalAlign: 'middle' }} /> {fmtViews(a.views)}</>}
-        </div>
-        <a href={shareUrls.whatsapp} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: '#25D366', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-          <Icon name="whatsapp" size={16} />
-        </a>
-        <a href={shareUrls.facebook} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: '#1877F2', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-          <Icon name="facebook" size={16} />
-        </a>
+      {/* Share row */}
+      <div style={{ background: 'var(--tt-paper)', padding: '10px 16px', borderBottom: '1px solid var(--tt-line)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ flex: 1, fontFamily: 'var(--tt-font-sans)', fontSize: 11, color: 'var(--tt-ink-faint)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Compartir</span>
+        {[
+          { n: 'whatsapp', c: '#25D366', href: shareUrls.whatsapp },
+          { n: 'facebook', c: '#1877F2', href: shareUrls.facebook },
+          { n: 'twitter',  c: '#1a1a1a', href: shareUrls.twitter  },
+          { n: 'email',    c: '#555',    href: shareUrls.email    },
+        ].map(({ n, c, href }) => (
+          <a key={n} href={href} target="_blank" rel="noopener noreferrer" style={{ width: 36, height: 36, borderRadius: '50%', background: c, color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+            <Icon name={n} size={15} />
+          </a>
+        ))}
         <button onClick={() => copyLink(articleUrl, onCopied)} title={copied ? '¡Copiado!' : 'Copiar enlace'} style={{ width: 36, height: 36, borderRadius: '50%', background: copied ? 'var(--tt-green)' : 'var(--tt-paper-2)', color: copied ? 'white' : 'var(--tt-ink)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}>
           <Icon name="link" size={15} />
         </button>

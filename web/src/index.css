@@ -417,9 +417,10 @@ body {
 }
 .tt-article-body .tt-related-block {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
+  gap: 0 12px;
+  padding: 14px 18px;
   background: var(--tt-green-soft);
   border-left: 4px solid var(--tt-green);
   border-radius: var(--tt-r-md);
@@ -429,14 +430,14 @@ body {
 }
 .tt-related-block:hover { filter: brightness(0.96); }
 .tt-related-label {
-  display: block;
+  width: 100%;
   font-family: var(--tt-font-sans);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--tt-green);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .tt-related-title {
   font-family: var(--tt-font-display);
@@ -446,7 +447,7 @@ body {
   flex: 1;
 }
 .tt-related-arrow {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--tt-green);
   flex-shrink: 0;
 }
