@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const { cacheMiddleware } = require('../middleware/cache');
+const { upsertPosts, getFallbackPosts, getFallbackPost } = require('../db');
 
 const router = express.Router();
 const WP_API = process.env.WP_API_URL || 'https://tanetanae.com/wp-json/wp/v2';
@@ -94,8 +95,8 @@ async function getCategoryIdBySlug(slug) {
 
 // GET /posts?page=1&per_page=10&category=slug
 router.get('/', cacheMiddleware(120), async (req, res) => {
+  const { page = 1, per_page = 10, category } = req.query;
   try {
-    const { page = 1, per_page = 10, category } = req.query;
     const params = {
       page,
       per_page,
@@ -113,15 +114,23 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
     const { data, headers } = await axios.get(`${WP_API}/posts`, { params, timeout: 15000 });
     const totalPages = parseInt(headers['x-wp-totalpages'] || '1', 10);
     const total = parseInt(headers['x-wp-total'] || data.length, 10);
+    const posts = data.map(mapPost);
 
-    res.json({
-      posts: data.map(mapPost),
-      total,
-      totalPages,
-      page: parseInt(page, 10),
-    });
+    // Guardar en DB en background (solo página 1 sin filtro de categoría)
+    if (!category && parseInt(page, 10) === 1) {
+      upsertPosts(posts).catch(() => {});
+    }
+
+    res.json({ posts, total, totalPages, page: parseInt(page, 10) });
   } catch (err) {
     console.error('GET /posts error:', err.message);
+    // Fallback DB para página 1 sin filtro
+    if (!category && parseInt(page, 10) === 1) {
+      const cached = await getFallbackPosts(parseInt(per_page, 10) || 10);
+      if (cached.length) {
+        return res.json({ posts: cached, total: cached.length, totalPages: 1, page: 1, fallback: true });
+      }
+    }
     res.status(502).json({ error: 'Error fetching posts', detail: err.message });
   }
 });
@@ -134,9 +143,13 @@ router.get('/slug/:slug', cacheMiddleware(300), async (req, res) => {
       timeout: 15000,
     });
     if (!data.length) return res.status(404).json({ error: 'Not found' });
-    res.json(mapPost(data[0]));
+    const post = mapPost(data[0]);
+    upsertPosts([post]).catch(() => {});
+    res.json(post);
   } catch (err) {
     console.error('GET /posts/slug/:slug error:', err.message);
+    const cached = await getFallbackPost(req.params.slug);
+    if (cached) return res.json({ ...cached, fallback: true });
     res.status(502).json({ error: 'Error fetching post', detail: err.message });
   }
 });

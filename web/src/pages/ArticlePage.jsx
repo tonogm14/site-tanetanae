@@ -3,6 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import UtilityStrip from '../components/UtilityStrip.jsx';
 import Header from '../components/Header.jsx';
 import HeaderMobile from '../components/HeaderMobile.jsx';
+import TTLogo from '../components/TTLogo.jsx';
 import StoryCard from '../components/StoryCard.jsx';
 import MostReadBox from '../components/MostReadBox.jsx';
 import Footer from '../components/Footer.jsx';
@@ -219,9 +220,23 @@ export default function ArticlePage({ theme, setTheme }) {
 
   if (loading) {
     return (
-      <div style={{ background: 'var(--tt-paper)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', fontSize: 24, color: 'var(--tt-ink-muted)' }}>
-          Cargando…
+      <div style={{ background: 'var(--tt-paper)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+        <style>{`
+          @keyframes tt-logo-float {
+            0%, 100% { transform: translateY(0px); opacity: 1; }
+            50%       { transform: translateY(-10px); opacity: 0.65; }
+          }
+          @keyframes tt-logo-bar {
+            0%   { transform: scaleX(0); }
+            50%  { transform: scaleX(0.7); }
+            100% { transform: scaleX(0); }
+          }
+        `}</style>
+        <div style={{ animation: 'tt-logo-float 1.8s ease-in-out infinite' }}>
+          <TTLogo size={32} />
+        </div>
+        <div style={{ width: 48, height: 2, background: 'var(--tt-line-strong)', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'var(--tt-green-vivid)', borderRadius: 999, transformOrigin: 'left', animation: 'tt-logo-bar 1.8s ease-in-out infinite' }} />
         </div>
       </div>
     );

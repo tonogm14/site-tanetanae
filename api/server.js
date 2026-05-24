@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { cacheMiddleware, registerRevalidator, setCache } = require('./src/middleware/cache');
+const { initSchema, upsertPosts, getFallbackPosts, incrementOfflineViews, drainOfflineViews } = require('./src/db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,8 +24,59 @@ const HIDDEN_CAT_SLUGS = new Set([
   'sin-categoria',
 ]);
 
-// ── Middleware ────────────────────────────────────────────
-app.use(cors());
+// ── Orígenes permitidos ───────────────────────────────────
+const ALLOWED_ORIGINS = new Set([
+  'https://tanetanae.com',
+  'https://www.tanetanae.com',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  ...(process.env.ALLOWED_ORIGIN ? process.env.ALLOWED_ORIGIN.split(',').map(s => s.trim()) : []),
+]);
+
+// ── Confiar en proxy de Railway / ngrok para IPs reales ──
+app.set('trust proxy', 1);
+
+// ── CORS restrictivo ──────────────────────────────────────
+app.use(cors({
+  origin: (origin, cb) => {
+    // Sin origin = request server-side o herramientas como curl (solo en dev)
+    if (!origin || ALLOWED_ORIGINS.has(origin)) return cb(null, true);
+    cb(Object.assign(new Error('CORS: origen no autorizado'), { status: 403 }));
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+}));
+
+// ── Rate limiter en memoria (sin dependencias) ────────────
+// Usa ip + postId para que cada artículo tenga su propio cupo.
+const viewsRateMap = new Map(); // key: `${ip}:${id}` → { count, resetAt }
+const VIEWS_WINDOW_MS  = 60 * 60 * 1000; // 1 hora
+const VIEWS_MAX        = 3;               // máx 3 veces por IP/artículo por hora
+
+function viewsRateLimit(req, res, next) {
+  const ip  = req.ip || req.socket.remoteAddress || 'unknown';
+  const key = `${ip}:${req.params.id}`;
+  const now = Date.now();
+  const entry = viewsRateMap.get(key);
+
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= VIEWS_MAX) {
+      return res.status(429).json({ error: 'Too many requests', views: 0 });
+    }
+    entry.count++;
+  } else {
+    viewsRateMap.set(key, { count: 1, resetAt: now + VIEWS_WINDOW_MS });
+  }
+
+  // Limpiar entradas expiradas cada ~500 requests para no crecer sin límite
+  if (viewsRateMap.size > 500) {
+    for (const [k, v] of viewsRateMap) {
+      if (now >= v.resetAt) viewsRateMap.delete(k);
+    }
+  }
+  next();
+}
+
 app.use(express.json());
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
@@ -211,7 +263,7 @@ async function buildHomeData() {
       color: `var(--tt-img--${slug})`,
     }));
 
-  return {
+  const result = {
     breaking:       ok(breaking),
     hero:           ok(hero),
     centrales:      allCentrales.slice(0, 3),
@@ -226,6 +278,32 @@ async function buildHomeData() {
     mostRead:       ok(mostRead),
     categories,
   };
+
+  // Guardar en DB en background si WP respondió con contenido
+  const wpPosts = [
+    ...result.hero, ...allCentrales, ...result.sucesos,
+    ...result.deportes, ...result.indigena, ...result.video,
+    ...ok(trinidad), ...ok(guyana),
+  ];
+  const uniquePosts = [...new Map(wpPosts.map(p => [p.id, p])).values()];
+  if (uniquePosts.length > 0) {
+    upsertPosts(uniquePosts).catch(e => console.warn('DB upsert bg error:', e.message));
+  } else {
+    // WP sin contenido — intentar fallback de DB
+    console.warn('buildHomeData: WP sin posts, usando fallback de DB');
+    const fallback = await getFallbackPosts(50);
+    if (fallback.length) {
+      return {
+        ...result,
+        hero:           fallback.slice(0, 5),
+        masNoticias:    fallback.slice(5, 8),
+        fueronNoticias: fallback.slice(8, 14),
+        mostRead:       fallback.slice(0, 5),
+      };
+    }
+  }
+
+  return result;
 }
 
 // Registrar revalidador para stale-while-revalidate
@@ -270,19 +348,30 @@ app.get('/most-read', cacheMiddleware(300), async (req, res) => {
 });
 
 // ── POST /views/:id — incremento atómico via WordPress ───────────────────────
-// El frontend llama esto fire-and-forget al cargar un artículo.
-// No se cachea — cada visita debe llegar a WordPress.
-app.post('/views/:id', async (req, res) => {
+app.post('/views/:id', viewsRateLimit, async (req, res) => {
+  const postId = req.params.id;
   try {
     const { data } = await axios.post(
-      `${WP_BASE}/wp-json/tt/v1/view/${req.params.id}`,
+      `${WP_BASE}/wp-json/tt/v1/view/${postId}`,
       {},
       { timeout: 5000 }
     );
+    // WP respondió — sincronizar vistas offline pendientes
+    drainOfflineViews(postId).then(async pending => {
+      if (pending <= 0) return;
+      // Enviar las vistas acumuladas offline como requests adicionales a WP
+      const batch = Math.min(pending, 20); // máximo 20 para no saturar WP
+      for (let i = 0; i < batch; i++) {
+        await axios.post(`${WP_BASE}/wp-json/tt/v1/view/${postId}`, {}, { timeout: 4000 })
+          .catch(() => {});
+      }
+      console.log(`DB: sincronizadas ${batch} vistas offline del post ${postId}`);
+    }).catch(() => {});
     res.json(data);
   } catch {
-    // Si WordPress falla, responder OK de todas formas — no es crítico
-    res.json({ views: 0 });
+    // WP no disponible — registrar visita en DB y devolver total estimado
+    const total = await incrementOfflineViews(postId);
+    res.json({ views: total ?? 0 });
   }
 });
 
@@ -341,8 +430,9 @@ app.listen(PORT, async () => {
   console.log(`Tane Tanae API → http://localhost:${PORT}`);
   console.log(`WordPress API  → ${WP_API}`);
 
-  // Pre-calentar caché al arrancar: el primer usuario recibe respuesta instantánea
-  warmCategoryCache()
+  // Inicializar esquema de DB y calentar caché
+  initSchema()
+    .then(() => warmCategoryCache())
     .then(() => buildHomeData())
     .then(data => {
       setCache('/home', data, 900);
