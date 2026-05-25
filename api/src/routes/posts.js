@@ -135,25 +135,32 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
   }
 });
 
-// GET /posts/slug/:slug — DB-first: sirve desde caché local, refresca WP en background
-router.get('/slug/:slug', cacheMiddleware(300), async (req, res) => {
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+// GET /posts/slug/:slug — DB-first, refresca WP en background cada 2 horas
+router.get('/slug/:slug', cacheMiddleware(7200), async (req, res) => {
   const { slug } = req.params;
 
-  // 1. Buscar en DB primero — solo si tiene contenido completo
-  const cached = await getFallbackPost(slug);
-  if (cached?.content) {
-    // Refrescar desde WP en background para mantener la DB actualizada
-    axios.get(`${WP_API}/posts`, {
-      params: { slug, _embed: true, status: 'publish' },
-      timeout: 15000,
-    }).then(({ data }) => {
-      if (data.length) upsertPosts([mapPost(data[0])]).catch(() => {});
-    }).catch(() => {});
+  // 1. Buscar en DB — solo si tiene contenido completo
+  const result = await getFallbackPost(slug);
+  if (result?.post?.content) {
+    const { post, fetchedAt } = result;
+    const age = Date.now() - new Date(fetchedAt).getTime();
 
-    return res.json(cached);
+    // Refrescar desde WP solo si el registro tiene más de 2 horas
+    if (age > TWO_HOURS_MS) {
+      axios.get(`${WP_API}/posts`, {
+        params: { slug, _embed: true, status: 'publish' },
+        timeout: 15000,
+      }).then(({ data }) => {
+        if (data.length) upsertPosts([mapPost(data[0])]).catch(() => {});
+      }).catch(() => {});
+    }
+
+    return res.json(post);
   }
 
-  // 2. No está en DB — buscar en WP, guardar y responder
+  // 2. No está en DB o sin contenido — buscar en WP, guardar y responder
   try {
     const { data } = await axios.get(`${WP_API}/posts`, {
       params: { slug, _embed: true, status: 'publish' },

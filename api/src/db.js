@@ -138,19 +138,20 @@ async function getFallbackPosts(limit = 12) {
 }
 
 // Devuelve una nota por slug desde la caché (incluye vistas offline en el total).
+// Retorna { post, fetchedAt } para que el llamador pueda decidir si refrescar.
 async function getFallbackPost(slug) {
   const db = pool();
   if (!db) return null;
   try {
     const { rows } = await db.query(
-      'SELECT data, views_offline FROM posts_cache WHERE slug = $1 LIMIT 1',
+      'SELECT data, views_offline, fetched_at FROM posts_cache WHERE slug = $1 LIMIT 1',
       [slug]
     );
     if (!rows.length) return null;
     const post = { ...rows[0].data };
     const offline = rows[0].views_offline || 0;
     if (offline > 0) post.views = (post.views || 0) + offline;
-    return post;
+    return { post, fetchedAt: rows[0].fetched_at };
   } catch (e) {
     console.warn('DB: error en fallback de post:', e.message);
     return null;
