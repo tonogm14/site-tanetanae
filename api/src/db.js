@@ -157,6 +157,18 @@ async function getFallbackPost(slug) {
   }
 }
 
+// Devuelve cuántas notas hay en la caché.
+async function getPostCount() {
+  const db = pool();
+  if (!db) return 0;
+  try {
+    const { rows } = await db.query('SELECT COUNT(*) AS n FROM posts_cache');
+    return parseInt(rows[0]?.n ?? 0, 10);
+  } catch {
+    return 0;
+  }
+}
+
 module.exports = {
   initSchema,
   upsertPosts,
@@ -164,4 +176,5 @@ module.exports = {
   drainOfflineViews,
   getFallbackPosts,
   getFallbackPost,
+  getPostCount,
 };

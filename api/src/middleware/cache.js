@@ -73,4 +73,8 @@ const cacheMiddleware = (ttl) => (req, res, next) => {
   next();
 };
 
-module.exports = { cache, cacheMiddleware, registerRevalidator, setCache };
+function deleteCache(key) {
+  cache.del(key);
+}
+
+module.exports = { cache, cacheMiddleware, registerRevalidator, setCache, deleteCache };

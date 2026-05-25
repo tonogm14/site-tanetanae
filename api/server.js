@@ -2,8 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { cacheMiddleware, registerRevalidator, setCache } = require('./src/middleware/cache');
-const { initSchema, upsertPosts, getFallbackPosts, incrementOfflineViews, drainOfflineViews } = require('./src/db');
+const { cacheMiddleware, registerRevalidator, setCache, deleteCache } = require('./src/middleware/cache');
+const { initSchema, upsertPosts, getFallbackPosts, incrementOfflineViews, drainOfflineViews, getPostCount } = require('./src/db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -347,6 +347,47 @@ app.get('/most-read', cacheMiddleware(300), async (req, res) => {
   res.json(posts.slice(0, 5));
 });
 
+// ── POST /webhook/post — notificación de WP al publicar o actualizar ─────────
+// Los webhooks son server→server (no hay browser ni Origin) — CORS no aplica.
+// Seguridad: header X-Webhook-Secret o query ?secret debe coincidir con WEBHOOK_SECRET.
+app.post('/webhook/post', express.json(), (req, res, next) => {
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) return next(); // Si no hay secret configurado, pasar (dev)
+  const received = req.headers['x-webhook-secret'] || req.query.secret || '';
+  if (received !== secret) return res.status(403).json({ error: 'Forbidden' });
+  next();
+}, async (req, res) => {
+  // WP Webhooks plugin / functions.php pueden enviar distintos campos
+  const body   = req.body || {};
+  const postId = body.ID || body.id || body.post_id;
+
+  if (!postId) return res.status(400).json({ error: 'post id requerido' });
+
+  try {
+    // Obtener el post completo desde WP (con _embed para categorías, imagen, autor)
+    const { data } = await axios.get(`${WP_API}/posts/${postId}`, {
+      params: { _embed: 1 },
+      timeout: 15000,
+    });
+
+    if (!data?.id) return res.status(404).json({ error: 'Post no encontrado en WP' });
+
+    const post = mapPost(data);
+
+    // Guardar en DB
+    await upsertPosts([post]);
+
+    // Invalidar caché del home para que el siguiente GET traiga datos frescos
+    deleteCache('/home');
+
+    console.log(`Webhook: post ${postId} (${post.slug}) guardado y caché invalidado`);
+    res.json({ ok: true, id: post.id, slug: post.slug });
+  } catch (e) {
+    console.error('Webhook error:', e.message);
+    res.status(502).json({ error: 'Error al obtener el post de WP', detail: e.message });
+  }
+});
+
 // ── POST /views/:id — incremento atómico via WordPress ───────────────────────
 app.post('/views/:id', viewsRateLimit, async (req, res) => {
   const postId = req.params.id;
@@ -409,13 +450,45 @@ app.get('/:name(\\w[\\w-]*\\.xml)', cacheMiddleware(3600), async (req, res) => {
 });
 
 // ── Health check ──────────────────────────────────────────
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+  const dbUrl    = process.env.DATABASE_URL;
+  const dbActive = !!dbUrl;
+  const dbCount  = dbActive ? await getPostCount().catch(() => -1) : null;
   res.json({
     status: 'ok',
     wp_api: WP_API,
     categories_cached: catIdCache.size,
+    db: {
+      configured: dbActive,
+      posts_cached: dbCount,
+      url_prefix: dbUrl ? dbUrl.slice(0, 30) + '…' : null,
+    },
     timestamp: new Date().toISOString(),
   });
+});
+
+// ── POST /admin/seed — fuerza seed manual (requiere WEBHOOK_SECRET) ──────────
+app.post('/admin/seed', async (req, res) => {
+  const secret = process.env.WEBHOOK_SECRET;
+  const received = req.headers['x-webhook-secret'] || req.query.secret || '';
+  if (secret && received !== secret) return res.status(403).json({ error: 'Forbidden' });
+
+  if (!process.env.DATABASE_URL) return res.status(503).json({ error: 'DATABASE_URL no configurado' });
+
+  try {
+    const before = await getPostCount();
+    const { data } = await axios.get(`${WP_API}/posts`, {
+      params: { per_page: 100, _embed: 1, status: 'publish', orderby: 'date', order: 'desc' },
+      timeout: 30000,
+    });
+    const posts = data.map(mapPost);
+    await upsertPosts(posts);
+    const after = await getPostCount();
+    deleteCache('/home');
+    res.json({ ok: true, fetched: posts.length, before, after });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
 });
 
 // ── 404 / error handlers ──────────────────────────────────
@@ -425,18 +498,45 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// ── Seed DB — rellena hasta 100 notas al arrancar si la DB tiene pocas ───────
+async function seedDatabase() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const count = await getPostCount();
+    if (count >= 50) {
+      console.log(`DB seed: ya hay ${count} notas, omitiendo`);
+      return;
+    }
+    console.log(`DB seed: ${count} notas en DB, obteniendo 100 de WP...`);
+    const { data } = await axios.get(`${WP_API}/posts`, {
+      params: {
+        per_page: 100,
+        _embed: 1,
+        status: 'publish',
+        orderby: 'date',
+        order: 'desc',
+      },
+      timeout: 30000,
+    });
+    const posts = data.map(mapPost);
+    await upsertPosts(posts);
+    console.log(`DB seed: ${posts.length} notas guardadas`);
+  } catch (e) {
+    console.warn('DB seed falló:', e.message);
+  }
+}
+
 // ── Start ─────────────────────────────────────────────────
 app.listen(PORT, async () => {
   console.log(`Tane Tanae API → http://localhost:${PORT}`);
   console.log(`WordPress API  → ${WP_API}`);
 
-  // Inicializar esquema de DB y calentar caché
+  // Inicializar esquema de DB, calentar caché y sembrar notas
   initSchema()
     .then(() => warmCategoryCache())
-    .then(() => buildHomeData())
-    .then(data => {
-      setCache('/home', data, 900);
-      console.log('Cache pre-warmed: /home listo');
-    })
+    .then(() => Promise.all([
+      buildHomeData().then(data => { setCache('/home', data, 900); console.log('Cache pre-warmed: /home listo'); }),
+      seedDatabase(),
+    ]))
     .catch(e => console.warn('Pre-warm falló:', e.message));
 });
