@@ -135,11 +135,28 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
   }
 });
 
-// GET /posts/slug/:slug
+// GET /posts/slug/:slug — DB-first: sirve desde caché local, refresca WP en background
 router.get('/slug/:slug', cacheMiddleware(300), async (req, res) => {
+  const { slug } = req.params;
+
+  // 1. Buscar en DB primero (respuesta inmediata)
+  const cached = await getFallbackPost(slug);
+  if (cached) {
+    // Refrescar desde WP en background para mantener la DB actualizada
+    axios.get(`${WP_API}/posts`, {
+      params: { slug, _embed: true, status: 'publish' },
+      timeout: 15000,
+    }).then(({ data }) => {
+      if (data.length) upsertPosts([mapPost(data[0])]).catch(() => {});
+    }).catch(() => {});
+
+    return res.json(cached);
+  }
+
+  // 2. No está en DB — buscar en WP, guardar y responder
   try {
     const { data } = await axios.get(`${WP_API}/posts`, {
-      params: { slug: req.params.slug, _embed: true, status: 'publish' },
+      params: { slug, _embed: true, status: 'publish' },
       timeout: 15000,
     });
     if (!data.length) return res.status(404).json({ error: 'Not found' });
@@ -148,8 +165,6 @@ router.get('/slug/:slug', cacheMiddleware(300), async (req, res) => {
     res.json(post);
   } catch (err) {
     console.error('GET /posts/slug/:slug error:', err.message);
-    const cached = await getFallbackPost(req.params.slug);
-    if (cached) return res.json({ ...cached, fallback: true });
     res.status(502).json({ error: 'Error fetching post', detail: err.message });
   }
 });
