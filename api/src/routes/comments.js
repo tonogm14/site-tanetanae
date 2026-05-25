@@ -1,5 +1,6 @@
 const express = require('express');
 const { saveComment, getComments } = require('../db');
+const { censorText } = require('../profanity');
 
 const router = express.Router();
 
@@ -29,7 +30,9 @@ router.post('/:postId', express.json(), async (req, res) => {
     return res.status(400).json({ error: 'El comentario no puede contener enlaces, correos ni @.' });
 
   try {
-    const comment = await saveComment(req.params.postId, author_name.trim(), content.trim());
+    const cleanContent = censorText(content.trim());
+    const cleanName    = censorText(author_name.trim());
+    const comment = await saveComment(req.params.postId, cleanName, cleanContent);
     res.json(comment);
   } catch (e) {
     console.error('POST /comments error:', e.message);
