@@ -139,9 +139,9 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
 router.get('/slug/:slug', cacheMiddleware(300), async (req, res) => {
   const { slug } = req.params;
 
-  // 1. Buscar en DB primero (respuesta inmediata)
+  // 1. Buscar en DB primero — solo si tiene contenido completo
   const cached = await getFallbackPost(slug);
-  if (cached) {
+  if (cached?.content) {
     // Refrescar desde WP en background para mantener la DB actualizada
     axios.get(`${WP_API}/posts`, {
       params: { slug, _embed: true, status: 'publish' },
