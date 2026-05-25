@@ -9,7 +9,7 @@ import MostReadBox from '../components/MostReadBox.jsx';
 import Footer from '../components/Footer.jsx';
 import SectionHead from '../components/SectionHead.jsx';
 import Icon from '../components/Icon.jsx';
-import { fetchPost, fetchOtherPosts, fetchPosts, registerView, fetchBanners, MOCK_DATA } from '../api/wordpress.js';
+import { fetchPost, fetchOtherPosts, fetchPosts, registerView, fetchBanners, fetchRelatedPreview, MOCK_DATA } from '../api/wordpress.js';
 import BannerSlot from '../components/BannerSlot.jsx';
 import CommentsSection from '../components/CommentsSection.jsx';
 
@@ -223,6 +223,36 @@ export default function ArticlePage({ theme, setTheme }) {
     if (a.imgUrl) setName('twitter:image', a.imgUrl);
     return () => { document.title = 'Tane Tanae · Así pasó'; };
   }, [a.slug, articleUrl]);
+
+  // Enrich related blocks with image + excerpt after content renders
+  useEffect(() => {
+    if (!a.content) return;
+    const timer = setTimeout(() => {
+      const blocks = document.querySelectorAll('.tt-article-body .tt-related-block[data-slug]:not([data-enriched])');
+      blocks.forEach(async block => {
+        const slug = block.dataset.slug;
+        block.dataset.enriched = '1';
+        const preview = await fetchRelatedPreview(slug);
+        if (!preview) return;
+        const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const excFull = preview.excerpt || '';
+        const exc = excFull.length > 80 ? excFull.slice(0, 80) + '…' : excFull;
+        const imgHtml = preview.imgUrl
+          ? `<img class="tt-related-img" src="${preview.imgUrl}" alt="" loading="lazy" />`
+          : '';
+        block.innerHTML = `
+          <span class="tt-related-label">Noticia relacionada</span>
+          ${imgHtml}
+          <div class="tt-related-text">
+            <span class="tt-related-title">${esc(preview.title)}</span>
+            ${exc ? `<span class="tt-related-excerpt">${esc(exc)}</span>` : ''}
+          </div>
+          <span class="tt-related-arrow" aria-hidden="true">→</span>
+        `;
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [a.content]);
 
   if (notFound) {
     return (

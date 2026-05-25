@@ -31,6 +31,15 @@ async function initSchema() {
       );
       CREATE INDEX IF NOT EXISTS posts_cache_fetched ON posts_cache (fetched_at DESC);
       CREATE INDEX IF NOT EXISTS posts_cache_slug    ON posts_cache (slug);
+
+      CREATE TABLE IF NOT EXISTS comments (
+        id          BIGSERIAL PRIMARY KEY,
+        post_id     TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        content     TEXT NOT NULL,
+        created_at  TIMESTAMPTZ DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS comments_post_idx ON comments (post_id, created_at DESC);
     `);
     // Migración para instancias que ya tenían la tabla sin la columna
     await db.query(
@@ -170,6 +179,45 @@ async function getPostCount() {
   }
 }
 
+// Guarda un comentario aprobado y lo devuelve con su id y fecha.
+async function saveComment(postId, authorName, content) {
+  const db = pool();
+  if (!db) throw new Error('DB no disponible');
+  const { rows } = await db.query(
+    `INSERT INTO comments (post_id, author_name, content)
+     VALUES ($1, $2, $3)
+     RETURNING id, author_name AS author, content, created_at AS date`,
+    [String(postId), authorName, content]
+  );
+  return rows[0];
+}
+
+// Devuelve comentarios paginados de un post y el total.
+async function getComments(postId, { page = 1, limit = 5 } = {}) {
+  const db = pool();
+  if (!db) return { comments: [], total: 0 };
+  const offset = (Math.max(1, page) - 1) * limit;
+  try {
+    const [{ rows: comments }, { rows: countRows }] = await Promise.all([
+      db.query(
+        `SELECT id, author_name AS author, content, created_at AS date
+         FROM comments WHERE post_id = $1
+         ORDER BY created_at ASC
+         LIMIT $2 OFFSET $3`,
+        [String(postId), limit, offset]
+      ),
+      db.query(
+        'SELECT COUNT(*) AS total FROM comments WHERE post_id = $1',
+        [String(postId)]
+      ),
+    ]);
+    return { comments, total: parseInt(countRows[0]?.total ?? 0, 10) };
+  } catch (e) {
+    console.warn('DB: error en getComments:', e.message);
+    return { comments: [], total: 0 };
+  }
+}
+
 module.exports = {
   initSchema,
   upsertPosts,
@@ -178,4 +226,6 @@ module.exports = {
   getFallbackPosts,
   getFallbackPost,
   getPostCount,
+  saveComment,
+  getComments,
 };

@@ -1,55 +1,39 @@
 const express = require('express');
-const axios = require('axios');
+const { saveComment, getComments } = require('../db');
 
 const router = express.Router();
-const WP_BASE = (process.env.WP_BASE || 'https://www.tanetanae.com').replace(/\/$/, '');
 
-const URL_RE = /(https?:\/\/|www\.)/i;
+// Rechaza: http/https, www., @, correos, TLDs comunes
+const SPAM_RE = /https?|www\.|@|\.(com|net|org|io|ve|info|co|app|xyz)\b/i;
 
-// GET /comments/:postId
+// GET /comments/:postId?page=1
 router.get('/:postId', async (req, res) => {
-  try {
-    const { data } = await axios.get(
-      `${WP_BASE}/wp-json/tt/v1/comments/${req.params.postId}`,
-      { timeout: 8000 }
-    );
-    res.json(Array.isArray(data) ? data : []);
-  } catch {
-    res.json([]);
-  }
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const result = await getComments(req.params.postId, { page, limit: 5 });
+  res.json(result);
 });
 
 // POST /comments/:postId
-router.post('/:postId', async (req, res) => {
+router.post('/:postId', express.json(), async (req, res) => {
   const { author_name, content } = req.body || {};
 
-  if (!author_name?.trim() || !content?.trim()) {
-    return res.status(400).json({ error: 'Nombre y comentario son requeridos.' });
-  }
-  if (URL_RE.test(content)) {
-    return res.status(400).json({ error: 'Los comentarios no pueden contener enlaces.' });
-  }
-  if (content.trim().length < 5) {
+  if (!author_name?.trim())
+    return res.status(400).json({ error: 'El nombre es requerido.' });
+  if (!content?.trim())
+    return res.status(400).json({ error: 'El comentario no puede estar vacío.' });
+  if (content.trim().length < 5)
     return res.status(400).json({ error: 'El comentario es muy corto.' });
-  }
-  if (content.length > 1000) {
-    return res.status(400).json({ error: 'El comentario no puede tener mas de 1000 caracteres.' });
-  }
+  if (content.length > 1000)
+    return res.status(400).json({ error: 'El comentario no puede tener más de 1000 caracteres.' });
+  if (SPAM_RE.test(content) || SPAM_RE.test(author_name))
+    return res.status(400).json({ error: 'El comentario no puede contener enlaces, correos ni @.' });
 
   try {
-    const { data } = await axios.post(
-      `${WP_BASE}/wp-json/tt/v1/comment`,
-      {
-        post_id:     parseInt(req.params.postId, 10),
-        author_name: author_name.trim(),
-        content:     content.trim(),
-      },
-      { timeout: 8000 }
-    );
-    res.json(data);
+    const comment = await saveComment(req.params.postId, author_name.trim(), content.trim());
+    res.json(comment);
   } catch (e) {
-    const msg = e.response?.data?.message || 'Error al enviar el comentario.';
-    res.status(e.response?.status || 500).json({ error: msg });
+    console.error('POST /comments error:', e.message);
+    res.status(500).json({ error: 'No se pudo guardar el comentario. Intenta de nuevo.' });
   }
 });
 

@@ -266,12 +266,21 @@ export async function fetchOtherPosts() {
   }
 }
 
-export async function fetchComments(postId) {
+export async function fetchRelatedPreview(slug) {
   try {
-    const { data } = await client.get(`/comments/${postId}`);
-    return Array.isArray(data) ? data : [];
+    const { data } = await client.get(`/posts/slug/${slug}`);
+    return { title: data.title || '', imgUrl: data.imgUrl || null, excerpt: data.excerpt || data.deck || '' };
   } catch {
-    return [];
+    return null;
+  }
+}
+
+export async function fetchComments(postId, page = 1) {
+  try {
+    const { data } = await client.get(`/comments/${postId}`, { params: { page } });
+    return { comments: data.comments || [], total: data.total || 0 };
+  } catch {
+    return { comments: [], total: 0 };
   }
 }
 
