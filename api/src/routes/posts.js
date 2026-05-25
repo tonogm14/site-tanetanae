@@ -67,6 +67,7 @@ function mapPost(post) {
     author: authorName,
     authorRole: author?.description || '',
     date: dateStr,
+    publishedAt: post.date,
     time: dateObj.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
     readTime,
     link: post.link,

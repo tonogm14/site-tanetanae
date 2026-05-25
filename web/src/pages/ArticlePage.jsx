@@ -164,6 +164,10 @@ export default function ArticlePage({ theme, setTheme }) {
   const onCopied   = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const shareUrls  = buildShareUrls(a.title, articleUrl);
 
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const articleAge = a.publishedAt ? Date.now() - new Date(a.publishedAt).getTime() : Infinity;
+  const commentsEnabled = a.commentStatus === 'open' && articleAge < THREE_DAYS_MS;
+
   const printOnly = (
     <div className="tt-print-only">
       <div className="tt-print-masthead">
@@ -552,7 +556,7 @@ export default function ArticlePage({ theme, setTheme }) {
             {/* Banner después del cuerpo */}
             <BannerSlot banner={banners['articulo-cuerpo']} style={{ marginTop: 40 }} />
 
-            <CommentsSection postId={a.id} enabled={a.commentStatus === 'open'} />
+            <CommentsSection postId={a.id} enabled={commentsEnabled} />
           </article>
 
           {/* Sidebar */}
@@ -719,7 +723,7 @@ export default function ArticlePage({ theme, setTheme }) {
 
       {/* Comments — mobile */}
       <div style={{ padding: '0 20px' }}>
-        <CommentsSection postId={a.id} enabled={a.commentStatus === 'open'} />
+        <CommentsSection postId={a.id} enabled={commentsEnabled} />
       </div>
 
       {/* Related */}
