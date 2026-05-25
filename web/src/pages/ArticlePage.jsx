@@ -98,6 +98,7 @@ export default function ArticlePage({ theme, setTheme }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   // Seed with router state so title/image appear instantly while API loads
   const [article, setArticle] = useState(location.state?.preview || null);
+  const [notFound, setNotFound] = useState(false);
   const [mostRead, setMostRead] = useState(MOCK_DATA.mostRead);
   const [related, setRelated] = useState(MOCK_DATA.related);
   const [loading, setLoading] = useState(true);
@@ -138,8 +139,13 @@ export default function ArticlePage({ theme, setTheme }) {
       fetchPosts({ perPage: 3 }),
     ]).then(([articleResult, mostReadResult, relatedResult]) => {
       if (cancelled) return;
-      const art = articleResult.status === 'fulfilled' ? (articleResult.value || MOCK_DATA.article) : MOCK_DATA.article;
-      setArticle(art);
+      const art = articleResult.status === 'fulfilled' ? articleResult.value : MOCK_DATA.article;
+      if (art === null) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setArticle(art || MOCK_DATA.article);
       if (mostReadResult.status === 'fulfilled') setMostRead(mostReadResult.value);
       if (relatedResult.status === 'fulfilled') setRelated(relatedResult.value.posts);
       setLoading(false);
@@ -217,6 +223,51 @@ export default function ArticlePage({ theme, setTheme }) {
     if (a.imgUrl) setName('twitter:image', a.imgUrl);
     return () => { document.title = 'Tane Tanae · Así pasó'; };
   }, [a.slug, articleUrl]);
+
+  if (notFound) {
+    return (
+      <div style={{ background: 'var(--tt-paper)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {isMobile
+          ? <HeaderMobile theme={theme} setTheme={setTheme} />
+          : <><UtilityStrip /><Header theme={theme} setTheme={setTheme} /></>
+        }
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
+          <TTLogo size={28} />
+          <div style={{ marginTop: 40, marginBottom: 16, fontFamily: 'var(--tt-font-display)', fontSize: isMobile ? 80 : 120, lineHeight: 1, color: 'var(--tt-line-strong)', fontWeight: 400 }}>
+            404
+          </div>
+          <h1 className="tt-headline" style={{ fontSize: isMobile ? 24 : 32, marginBottom: 12 }}>
+            Esta nota no existe
+          </h1>
+          <p style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 15, color: 'var(--tt-ink-muted)', maxWidth: 360, lineHeight: 1.5, marginBottom: 36 }}>
+            El artículo que buscas fue eliminado, movido o nunca existió en este sitio.
+          </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link to="/" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'var(--tt-ink)', color: 'white',
+              padding: '12px 24px', borderRadius: 'var(--tt-r-pill)',
+              fontFamily: 'var(--tt-font-sans)', fontSize: 14, fontWeight: 600,
+              textDecoration: 'none',
+            }}>
+              Ir al inicio
+            </Link>
+            <button onClick={() => window.history.back()} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'transparent', color: 'var(--tt-ink)',
+              padding: '12px 24px', borderRadius: 'var(--tt-r-pill)',
+              border: '1px solid var(--tt-line-strong)',
+              fontFamily: 'var(--tt-font-sans)', fontSize: 14, fontWeight: 500,
+              cursor: 'pointer',
+            }}>
+              Volver atrás
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

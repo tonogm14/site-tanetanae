@@ -150,7 +150,8 @@ export async function fetchPost(slug) {
   try {
     const { data } = await client.get(`/posts/slug/${slug}`);
     return data;
-  } catch {
+  } catch (err) {
+    if (err?.response?.status === 404) return null;
     return MOCK_DATA.article;
   }
 }
