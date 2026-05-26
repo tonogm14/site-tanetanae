@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage.jsx';
 import CategoryPage from './pages/CategoryPage.jsx';
 import ArticlePage from './pages/ArticlePage.jsx';
@@ -42,6 +42,7 @@ export default function App() {
           <Route path="/tanetanae-noticias-de-ayer-y-hoy" element={<AyerHoyPage  theme={theme} setTheme={toggleTheme} />} />
           <Route path="/categoria/:slug"                   element={<CategoryPage theme={theme} setTheme={toggleTheme} />} />
           <Route path="/:slug"                             element={<ArticlePage  theme={theme} setTheme={toggleTheme} />} />
+          <Route path="*"                                  element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </div>
