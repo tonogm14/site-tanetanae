@@ -162,7 +162,7 @@ const HeaderMobile = ({ activeCategory = '', theme, setTheme }) => {
             </div>
           )}
           <p style={{ fontSize: 11, color: 'var(--tt-ink-faint)', letterSpacing: '0.02em' }}>
-            © 2026 Tane Tanae · Tucupita
+            © 2026 Tanetanae · Tucupita
           </p>
         </div>
       </div>

@@ -36,7 +36,7 @@ function esc(s) {
 }
 
 function injectMeta(post, slug) {
-  const title   = `${post.title} · Tane Tanae`;
+  const title   = `${post.title} · Tanetanae`;
   const desc    = post.excerpt || post.deck || 'La voz del Delta. Periodismo independiente desde Tucupita, Delta Amacuro.';
   const imgUrl  = post.imgUrl || '';
   const pageUrl = `${SITE_URL}/${slug}`;

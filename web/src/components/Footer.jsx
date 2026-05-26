@@ -197,7 +197,7 @@ const FooterBottom = ({ padX }) => (
     letterSpacing: '0.04em',
     textAlign: 'center',
   }}>
-    <span>© 2026 Tane Tanae · Así pasó. Todos los derechos reservados.</span>
+    <span>© 2026 Tanetanae · Así pasó. Todos los derechos reservados.</span>
     <span>Tucupita, Delta Amacuro · Venezuela</span>
   </div>
 );

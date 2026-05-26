@@ -154,7 +154,7 @@ const HomeMobile = ({ data, loading, theme, setTheme, banners, otherPosts }) => 
   const navigate              = useNavigate();
 
   useEffect(() => {
-    document.title = 'Tane Tanae · La voz del Delta';
+    document.title = 'Tanetanae · La voz del Delta';
   }, []);
 
   useEffect(() => {
