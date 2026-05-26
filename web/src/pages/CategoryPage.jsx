@@ -135,7 +135,7 @@ export default function CategoryPage({ theme, setTheme }) {
         setPosts(postsResult.value.posts);
         setTotalPages(postsResult.value.totalPages);
       } else {
-        setPosts(MOCK_DATA[slug] || MOCK_DATA.sucesos);
+        setPosts([]);
       }
       if (breakingResult.status === 'fulfilled') setBreaking(breakingResult.value);
       if (mostReadResult.status === 'fulfilled') setMostRead(mostReadResult.value);
@@ -230,6 +230,17 @@ export default function CategoryPage({ theme, setTheme }) {
                 borderTopColor: 'var(--tt-green)',
                 animation: 'tt-spin 0.75s linear infinite',
               }} />
+            </div>
+          )}
+
+          {!loading && posts.length === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 12 }}>
+              <span style={{ fontFamily: 'var(--tt-font-display)', fontStyle: 'italic', fontSize: 28, color: 'var(--tt-ink-muted)' }}>
+                Sin noticias disponibles
+              </span>
+              <p style={{ fontFamily: 'var(--tt-font-sans)', fontSize: 13, color: 'var(--tt-ink-faint)', margin: 0 }}>
+                No hay artículos en esta categoría por el momento.
+              </p>
             </div>
           )}
 

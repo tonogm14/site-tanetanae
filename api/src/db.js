@@ -130,6 +130,24 @@ async function drainOfflineViews(postId) {
   }
 }
 
+// Devuelve hasta N notas de una categoría específica desde la caché.
+async function getFallbackPostsByCategory(catSlug, limit = 12) {
+  const db = pool();
+  if (!db) return [];
+  try {
+    const { rows } = await db.query(
+      `SELECT data FROM posts_cache
+       WHERE data->>'catSlug' = $1
+       ORDER BY fetched_at DESC LIMIT $2`,
+      [catSlug, limit]
+    );
+    return rows.map(r => r.data);
+  } catch (e) {
+    console.warn('DB: error en fallback por categoría:', e.message);
+    return [];
+  }
+}
+
 // Devuelve las últimas N notas cacheadas (para fallback de home / listados).
 async function getFallbackPosts(limit = 12) {
   const db = pool();
@@ -224,6 +242,7 @@ module.exports = {
   incrementOfflineViews,
   drainOfflineViews,
   getFallbackPosts,
+  getFallbackPostsByCategory,
   getFallbackPost,
   getPostCount,
   saveComment,

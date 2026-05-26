@@ -133,8 +133,8 @@ export async function fetchPosts({ page = 1, perPage = 10, category } = {}) {
       totalPages: data.totalPages || 1,
     };
   } catch {
-    const fallback = category ? (MOCK_DATA[category] || MOCK_DATA.hero) : MOCK_DATA.hero;
-    return { posts: Array.isArray(fallback) ? fallback : [], total: 0, totalPages: 1 };
+    if (category) return { posts: [], total: 0, totalPages: 1 };
+    return { posts: MOCK_DATA.hero, total: 0, totalPages: 1 };
   }
 }
 

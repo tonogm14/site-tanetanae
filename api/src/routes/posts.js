@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const { cacheMiddleware } = require('../middleware/cache');
-const { upsertPosts, getFallbackPosts, getFallbackPost } = require('../db');
+const { upsertPosts, getFallbackPosts, getFallbackPostsByCategory, getFallbackPost } = require('../db');
 
 const router = express.Router();
 const WP_API = process.env.WP_API_URL || 'https://tanetanae.com/wp-json/wp/v2';
@@ -125,12 +125,19 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
     res.json({ posts, total, totalPages, page: parseInt(page, 10) });
   } catch (err) {
     console.error('GET /posts error:', err.message);
-    // Fallback DB para página 1 sin filtro
-    if (!category && parseInt(page, 10) === 1) {
-      const cached = await getFallbackPosts(parseInt(per_page, 10) || 10);
+    const pg = parseInt(page, 10) || 1;
+    const limit = parseInt(per_page, 10) || 10;
+    // Fallback DB — home (sin categoría, página 1)
+    if (!category && pg === 1) {
+      const cached = await getFallbackPosts(limit);
       if (cached.length) {
         return res.json({ posts: cached, total: cached.length, totalPages: 1, page: 1, fallback: true });
       }
+    }
+    // Fallback DB — categoría (página 1): posts reales de la BD filtrados por catSlug
+    if (category && pg === 1) {
+      const cached = await getFallbackPostsByCategory(category, limit);
+      return res.json({ posts: cached, total: cached.length, totalPages: cached.length ? 1 : 0, page: 1, fallback: true });
     }
     res.status(502).json({ error: 'Error fetching posts', detail: err.message });
   }
