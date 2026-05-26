@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://api.tanetanae.com/sitemap_index.xml
+Sitemap: https://www.tanetanae.com/sitemap.xml

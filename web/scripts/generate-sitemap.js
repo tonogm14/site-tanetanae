@@ -132,12 +132,11 @@ async function main() {
   console.log(`✓ public/sitemap.xml written (${entries.length} URLs)`);
 
   // Write robots.txt
-  const API_URL = (process.env.API_URL || 'https://api.tanetanae.com').replace(/\/$/, '');
   const robots = [
     'User-agent: *',
     'Allow: /',
     '',
-    `Sitemap: ${API_URL}/sitemap_index.xml`,
+    `Sitemap: ${SITE_URL}/sitemap.xml`,
   ].join('\n');
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'robots.txt'), robots, 'utf8');
