@@ -89,9 +89,9 @@ export default function SearchPage({ theme, setTheme }) {
 
   useEffect(() => {
     document.title = searchTerm
-      ? `"${searchTerm}" · Buscar · Tanetanae`
-      : 'Buscar · Tanetanae';
-    return () => { document.title = 'Tanetanae · Así pasó'; };
+      ? `"${searchTerm}" · Buscar · Tane Tanae`
+      : 'Buscar · Tane Tanae';
+    return () => { document.title = 'Tane Tanae · Así pasó'; };
   }, [searchTerm]);
 
   // Debounce: actualiza searchTerm y limpia page de la URL

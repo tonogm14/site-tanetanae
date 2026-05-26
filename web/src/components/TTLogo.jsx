@@ -9,7 +9,7 @@ const TTLogo = ({ size = 24, inverted = false, monogram = false }) => {
   if (monogram) {
     if (LOGO_URL) {
       return (
-        <img src={LOGO_URL} alt="Tanetanae"
+        <img src={LOGO_URL} alt="Tane Tanae"
           style={{ height: size, width: 'auto', display: 'block', filter: inverted ? 'brightness(0) invert(1)' : 'none' }} />
       );
     }
@@ -27,7 +27,7 @@ const TTLogo = ({ size = 24, inverted = false, monogram = false }) => {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: ink }}>
       {LOGO_URL && (
-        <img src={LOGO_URL} alt="Tanetanae"
+        <img src={LOGO_URL} alt="Tane Tanae"
           style={{ height: size * 1.1, width: 'auto', display: 'block' }} />
       )}
       <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8 }}>

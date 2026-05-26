@@ -213,7 +213,7 @@ export default function ArticlePage({ theme, setTheme }) {
       el.setAttribute('content', content);
     };
     const desc = a.deck || a.excerpt || '';
-    document.title = `${a.title} · Tanetanae`;
+    document.title = `${a.title} · Tane Tanae`;
     // Open Graph (Facebook, WhatsApp, LinkedIn…)
     setProp('og:title',       a.title);
     setProp('og:description', desc);
@@ -225,7 +225,7 @@ export default function ArticlePage({ theme, setTheme }) {
     setName('twitter:title',       a.title);
     setName('twitter:description', desc);
     if (a.imgUrl) setName('twitter:image', a.imgUrl);
-    return () => { document.title = 'Tanetanae · Así pasó'; };
+    return () => { document.title = 'Tane Tanae · Así pasó'; };
   }, [a.slug, articleUrl]);
 
   // Enrich related blocks with image + excerpt after content renders
