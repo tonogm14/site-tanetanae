@@ -105,6 +105,11 @@ export default function CategoryPage({ theme, setTheme }) {
   const catLabel = CAT_LABELS[slug] || slug;
   const prevSlug = useRef(slug);
 
+  useEffect(() => {
+    document.title = `${catLabel} · Tane Tanae`;
+    return () => { document.title = 'Tane Tanae · Así pasó'; };
+  }, [catLabel]);
+
   // Ir a otra categoría: limpiar posts y volver a página 1 en la URL
   useEffect(() => {
     if (prevSlug.current === slug) return;

@@ -69,6 +69,11 @@ export default function AyerHoyPage({ theme, setTheme }) {
   }, []);
 
   useEffect(() => {
+    document.title = 'Ayer y Hoy · Tane Tanae';
+    return () => { document.title = 'Tane Tanae · Así pasó'; };
+  }, []);
+
+  useEffect(() => {
     fetchBreaking().then(setBreaking);
   }, []);
 

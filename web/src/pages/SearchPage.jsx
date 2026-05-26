@@ -87,6 +87,13 @@ export default function SearchPage({ theme, setTheme }) {
 
   useEffect(() => { fetchTrendingTags().then(tags => { if (tags.length) setTrendingTags(tags); }); }, []);
 
+  useEffect(() => {
+    document.title = searchTerm
+      ? `"${searchTerm}" · Buscar · Tane Tanae`
+      : 'Buscar · Tane Tanae';
+    return () => { document.title = 'Tane Tanae · Así pasó'; };
+  }, [searchTerm]);
+
   // Debounce: actualiza searchTerm y limpia page de la URL
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
