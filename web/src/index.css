@@ -454,6 +454,33 @@ body {
   margin: 24px auto;
 }
 .tt-article-body a { cursor: pointer; }
+
+/* iframes y videos embebidos (YouTube, Instagram, etc.) */
+.tt-article-body iframe,
+.tt-article-body video {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  display: block;
+  border-radius: var(--tt-r-md);
+  margin: 24px 0;
+}
+
+/* Contenedor de embed de Gutenberg */
+.tt-article-body .wp-block-embed,
+.tt-article-body .wp-block-embed__wrapper {
+  max-width: 100%;
+  overflow: hidden;
+}
+.tt-article-body .wp-block-embed__wrapper iframe {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin: 0;
+  border-radius: var(--tt-r-md);
+}
+
 .tt-article-body figure {
   margin: 28px 0;
 }
