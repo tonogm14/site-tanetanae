@@ -138,6 +138,7 @@ async function main() {
     'Disallow: /cgi-bin/',
     '',
     `Sitemap: ${SITE_URL}/sitemap.xml`,
+    `LLMs: ${SITE_URL}/llms.txt`,
   ].join('\n');
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'robots.txt'), robots, 'utf8');

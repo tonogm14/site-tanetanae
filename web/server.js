@@ -149,6 +149,99 @@ app.get(/^\/[\w][\w-]*\.xml$/, async (req, res) => {
   }
 });
 
+// ── llms.txt — índice de contenido para asistentes de IA ─────────────────────
+// Especificación: https://llmstxt.org
+// Se genera dinámicamente con los posts más recientes de la API.
+
+const SECTIONS = [
+  { slug: 'sucesos',           name: 'Sucesos',           desc: 'Noticias de seguridad, accidentes y eventos locales en Delta Amacuro' },
+  { slug: 'deportes',          name: 'Deportes',           desc: 'Noticias deportivas del estado Delta Amacuro' },
+  { slug: 'indigenas',         name: 'Indígena',           desc: 'Noticias sobre las comunidades warao y pueblos originarios del Delta' },
+  { slug: 'trinidad-y-tobago', name: 'Trinidad y Tobago',  desc: 'Noticias sobre la relación binacional con Trinidad y Tobago' },
+  { slug: 'guyana',            name: 'Guyana',             desc: 'Noticias sobre Guyana y el territorio Esequibo' },
+  { slug: 'videos',            name: 'Videos',             desc: 'Cobertura en video de eventos y noticias locales' },
+  { slug: 'opinion',           name: 'Opinión',            desc: 'Columnas de opinión y análisis del Delta Amacuro' },
+  { slug: 'especiales',        name: 'Especiales',         desc: 'Reportajes especiales e investigaciones periodísticas' },
+];
+
+let llmsCache = { body: null, builtAt: 0 };
+const LLMS_TTL = 6 * 60 * 60 * 1000; // 6 horas
+
+function fetchJson(url) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith('https') ? httpsGet : httpGet;
+    const r = lib(url, { timeout: 8000 }, resp => {
+      let b = '';
+      resp.setEncoding('utf-8');
+      resp.on('data', d => b += d);
+      resp.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve(null); } });
+    });
+    r.on('error', reject);
+    r.on('timeout', () => { r.destroy(); reject(new Error('timeout')); });
+  });
+}
+
+async function buildLlmsTxt(full = false) {
+  const perPage = full ? 100 : 20;
+  let posts = [];
+  try {
+    const data = await fetchJson(`${API_URL}/posts?per_page=${perPage}&page=1`);
+    posts = data?.posts || [];
+  } catch { /* sin posts recientes */ }
+
+  const lines = [
+    `# Tane Tanae`,
+    ``,
+    `> La voz del Delta. Periodismo independiente desde Tucupita, Delta Amacuro, Venezuela.`,
+    ``,
+    `Tane Tanae es el medio de comunicación digital independiente de Delta Amacuro, Venezuela. Cubrimos noticias locales, sucesos, deportes, comunidades indígenas warao y la relación de la región con Trinidad y Tobago y Guyana.`,
+    ``,
+    `## Secciones principales`,
+    ``,
+    `- [Inicio](${SITE_URL}/): Portada con las últimas noticias del Delta Amacuro`,
+    ...SECTIONS.map(s => `- [${s.name}](${SITE_URL}/categoria/${s.slug}): ${s.desc}`),
+    ``,
+    `## Artículos ${full ? '' : 'recientes '}(${posts.length})`,
+    ``,
+  ];
+
+  for (const p of posts) {
+    const excerpt = (p.excerpt || p.deck || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    const url = `${SITE_URL}/${p.slug}`;
+    lines.push(`- [${p.title}](${url})${excerpt ? `: ${excerpt}` : ''}`);
+  }
+
+  if (full) {
+    lines.push(``, `## Más información`, ``);
+    lines.push(`- [llms.txt](${SITE_URL}/llms.txt): Versión compacta (20 artículos)`);
+    lines.push(`- [Sitemap](${SITE_URL}/sitemap_index.xml): Índice completo de URLs`);
+  } else {
+    lines.push(``, `## Ver más`, ``);
+    lines.push(`- [llms-full.txt](${SITE_URL}/llms-full.txt): Índice extendido (100 artículos más recientes)`);
+    lines.push(`- [Sitemap](${SITE_URL}/sitemap_index.xml): Índice completo de URLs`);
+  }
+
+  return lines.join('\n');
+}
+
+app.get('/llms.txt', async (_req, res) => {
+  const now = Date.now();
+  if (!llmsCache.body || now - llmsCache.builtAt > LLMS_TTL) {
+    llmsCache.body = await buildLlmsTxt(false).catch(() => null);
+    llmsCache.builtAt = now;
+  }
+  res.set('Content-Type', 'text/plain; charset=utf-8')
+     .set('Cache-Control', 'public, max-age=21600')
+     .send(llmsCache.body || '# Tane Tanae\n\n> La voz del Delta.');
+});
+
+app.get('/llms-full.txt', async (_req, res) => {
+  const body = await buildLlmsTxt(true).catch(() => null);
+  res.set('Content-Type', 'text/plain; charset=utf-8')
+     .set('Cache-Control', 'public, max-age=21600')
+     .send(body || '# Tane Tanae\n\n> La voz del Delta.');
+});
+
 // Rutas con extensión de archivo (.xml, .json, .txt) que no existen en dist/
 // → 404, no index.html (evita que Google indexe URLs no válidas)
 app.get('*', (req, res, next) => {

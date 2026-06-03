@@ -3,3 +3,4 @@ Allow: /
 Disallow: /cgi-bin/
 
 Sitemap: https://www.tanetanae.com/sitemap.xml
+LLMs: https://www.tanetanae.com/llms.txt
