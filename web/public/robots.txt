@@ -2,5 +2,37 @@ User-agent: *
 Allow: /
 Disallow: /cgi-bin/
 
+# Bots de herramientas SEO — rastrean para bases de datos de terceros
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# Scrapers de contenido / crawlers genéricos
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
 Sitemap: https://www.tanetanae.com/sitemap.xml
 LLMs: https://www.tanetanae.com/llms.txt

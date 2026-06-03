@@ -37,6 +37,40 @@ function esc(s) {
     .replace(/</g, '&lt;');
 }
 
+// ── Bots conocidos de scraping que ignoramos / bloqueamos ────────────────────
+// No incluye bots legítimos (Googlebot, Bingbot, etc.)
+const BLOCKED_UA = /AhrefsBot|SemrushBot|MJ12bot|DotBot|BLEXBot|DataForSeoBot|Bytespider|PetalBot|Scrapy|python-requests|Go-http-client|curl\/|wget\/|HTTrack|WebCopier|SiteSnagger|TeleportPro|Offline Explorer|BlackWidow|Zeus|EmailCollector|EmailSiphon|EmailWolf|ExtractorPro|CopyRightCheck|Mogimogi|Heritrix|larbin|ZmEu|sqlmap|libwww-perl/i;
+
+// ── Rate limiter simple en memoria: N requests por IP en ventana de tiempo ───
+const rateMap  = new Map();
+const RATE_WIN = 60_000;  // 1 minuto
+const RATE_MAX = 80;      // máximo requests por IP/minuto (permite uso legítimo)
+
+function rateLimit(req, res, next) {
+  // Saltar archivos estáticos con extensión (.js, .css, .png …)
+  if (extname(req.path)) return next();
+
+  const ip  = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const rec = rateMap.get(ip);
+
+  if (rec && now < rec.resetAt) {
+    if (rec.count >= RATE_MAX) {
+      res.set('Retry-After', '60');
+      return res.status(429).send('Too Many Requests');
+    }
+    rec.count++;
+  } else {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WIN });
+  }
+
+  // Limpiar entradas expiradas periódicamente
+  if (rateMap.size > 2000) {
+    for (const [k, v] of rateMap) { if (now >= v.resetAt) rateMap.delete(k); }
+  }
+  next();
+}
+
 function injectMeta(post, slug) {
   const title   = `${post.title} · Tane Tanae`;
   const desc    = post.excerpt || post.deck || 'La voz del Delta. Periodismo independiente desde Tucupita, Delta Amacuro.';
@@ -45,7 +79,11 @@ function injectMeta(post, slug) {
 
   let html = INDEX_HTML;
 
-  // Reemplaza tags existentes en el template
+  // Canonical URL — le dice a Google quién publicó primero
+  html = html.replace('</head>',
+    `    <link rel="canonical" href="${esc(pageUrl)}" />\n  </head>`
+  );
+
   html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
   html = html.replace(/(property="og:title"\s+content=")[^"]*"/,       `$1${esc(title)}"`);
   html = html.replace(/(property="og:description"\s+content=")[^"]*"/, `$1${esc(desc)}"`);
@@ -54,7 +92,6 @@ function injectMeta(post, slug) {
   html = html.replace(/(name="twitter:title"\s+content=")[^"]*"/,      `$1${esc(title)}"`);
   html = html.replace(/(name="twitter:description"\s+content=")[^"]*"/, `$1${esc(desc)}"`);
 
-  // Agrega og:image / twitter:image (no están en el template base)
   if (imgUrl) {
     html = html.replace(/(name="twitter:card"\s+content=")[^"]*"/, `$1summary_large_image"`);
     html = html.replace('</head>',
@@ -90,6 +127,22 @@ function fetchPost(slug) {
 }
 
 const app = express();
+
+// Bloquear bots de scraping conocidos (antes de cualquier otra ruta)
+app.use((req, res, next) => {
+  const ua = req.headers['user-agent'] || '';
+  if (BLOCKED_UA.test(ua)) return res.status(403).end();
+  next();
+});
+
+// Rate limiting global (excluye archivos estáticos)
+app.use(rateLimit);
+
+// Headers de seguridad aplicados a todas las respuestas HTML
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  next();
+});
 
 // Archivos estáticos del build (JS, CSS, imágenes, fuentes…)
 app.use(express.static(DIST, { index: false }));
