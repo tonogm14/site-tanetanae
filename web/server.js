@@ -115,8 +115,11 @@ function fetchWpXml(wpPath) {
 }
 
 function rewriteXmlUrls(xml) {
-  // Reemplaza el origen de WP por el dominio público en todas las <loc>
-  return xml.replaceAll(WP_BASE, SITE_URL);
+  // Quita el stylesheet XSL de Yoast (apunta a cms.tanetanae.com → CORS al proxy)
+  // Google no lo necesita; el browser muestra el árbol XML nativo sin él.
+  return xml
+    .replace(/<\?xml-stylesheet[^?]*\?>\n?/g, '')
+    .replaceAll(WP_BASE, SITE_URL);
 }
 
 const XML_EMPTY = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>';
