@@ -92,6 +92,9 @@ const app = express();
 // Archivos estáticos del build (JS, CSS, imágenes, fuentes…)
 app.use(express.static(DIST, { index: false }));
 
+// Health check — Railway lo usa para saber que el servidor está listo
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
 // Todas las rutas → SPA, con inyección de meta para slugs de artículo
 app.get('*', async (req, res) => {
   // Detectar slug de artículo: /alguna-noticia (sin sub-rutas)

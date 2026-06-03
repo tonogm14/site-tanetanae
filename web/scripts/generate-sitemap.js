@@ -135,6 +135,7 @@ async function main() {
   const robots = [
     'User-agent: *',
     'Allow: /',
+    'Disallow: /cgi-bin/',
     '',
     `Sitemap: ${SITE_URL}/sitemap.xml`,
   ].join('\n');
