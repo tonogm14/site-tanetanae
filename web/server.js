@@ -10,8 +10,8 @@
  */
 
 import express    from 'express';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname, extname } from 'path';
 import { fileURLToPath }  from 'url';
 import { get as httpGet }  from 'http';
 import { get as httpsGet } from 'https';
@@ -94,6 +94,42 @@ app.use(express.static(DIST, { index: false }));
 
 // Health check — Railway lo usa para saber que el servidor está listo
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Proxy de sitemap — el archivo puede no existir en dist/ si el generador
+// falló durante el build; en ese caso lo obtenemos del API en vivo.
+app.get('/sitemap.xml', async (req, res) => {
+  const staticPath = join(DIST, 'sitemap.xml');
+  if (existsSync(staticPath)) {
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    return res.send(readFileSync(staticPath, 'utf-8'));
+  }
+  // Fallback: pedir al API (que lo proxea desde WordPress)
+  try {
+    const xml = await new Promise((resolve, reject) => {
+      const url = `${API_URL}/sitemap_index.xml`;
+      const lib = url.startsWith('https') ? httpsGet : httpGet;
+      const r = lib(url, { timeout: 8000 }, resp => {
+        let b = '';
+        resp.on('data', d => b += d);
+        resp.on('end', () => resolve(b));
+      });
+      r.on('error', reject);
+      r.on('timeout', () => { r.destroy(); reject(new Error('timeout')); });
+    });
+    res.set('Content-Type', 'application/xml; charset=utf-8');
+    return res.send(xml);
+  } catch {
+    res.status(503).set('Content-Type', 'application/xml').send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
+  }
+});
+
+// Rutas con extensión de archivo (.xml, .json, .txt) que no existen en dist/
+// → 404, no index.html (evita que Google indexe URLs no válidas)
+app.get('*', (req, res, next) => {
+  const ext = extname(req.path);
+  if (ext && ext !== '.html') return res.status(404).end();
+  next();
+});
 
 // Todas las rutas → SPA, con inyección de meta para slugs de artículo
 app.get('*', async (req, res) => {
