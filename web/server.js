@@ -95,29 +95,42 @@ app.use(express.static(DIST, { index: false }));
 // Health check — Railway lo usa para saber que el servidor está listo
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-// Proxy de sitemap — el archivo puede no existir en dist/ si el generador
-// falló durante el build; en ese caso lo obtenemos del API en vivo.
-app.get('/sitemap.xml', async (req, res) => {
+// Proxy de sitemaps XML — forwarded al API que los obtiene de WordPress.
+// Cubre /sitemap.xml, /sitemap_index.xml, /post-sitemap.xml, etc.
+function proxyXmlFromApi(apiPath) {
+  return new Promise((resolve, reject) => {
+    const url = `${API_URL}${apiPath}`;
+    const lib = url.startsWith('https') ? httpsGet : httpGet;
+    const r = lib(url, { timeout: 10000 }, resp => {
+      let b = '';
+      resp.on('data', d => b += d);
+      resp.on('end', () => resolve({ status: resp.statusCode, body: b }));
+    });
+    r.on('error', reject);
+    r.on('timeout', () => { r.destroy(); reject(new Error('timeout')); });
+  });
+}
+
+app.get('/sitemap.xml', async (_req, res) => {
   const staticPath = join(DIST, 'sitemap.xml');
   if (existsSync(staticPath)) {
     res.set('Content-Type', 'application/xml; charset=utf-8');
     return res.send(readFileSync(staticPath, 'utf-8'));
   }
-  // Fallback: pedir al API (que lo proxea desde WordPress)
   try {
-    const xml = await new Promise((resolve, reject) => {
-      const url = `${API_URL}/sitemap_index.xml`;
-      const lib = url.startsWith('https') ? httpsGet : httpGet;
-      const r = lib(url, { timeout: 8000 }, resp => {
-        let b = '';
-        resp.on('data', d => b += d);
-        resp.on('end', () => resolve(b));
-      });
-      r.on('error', reject);
-      r.on('timeout', () => { r.destroy(); reject(new Error('timeout')); });
-    });
+    const { body } = await proxyXmlFromApi('/sitemap_index.xml');
     res.set('Content-Type', 'application/xml; charset=utf-8');
-    return res.send(xml);
+    return res.send(body);
+  } catch {
+    res.status(503).set('Content-Type', 'application/xml').send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
+  }
+});
+
+// /sitemap_index.xml, /post-sitemap.xml, /post-sitemap2.xml, etc.
+app.get(/^\/[\w][\w-]*\.xml$/, async (req, res) => {
+  try {
+    const { status, body } = await proxyXmlFromApi(req.path);
+    res.status(status).set('Content-Type', 'application/xml; charset=utf-8').send(body);
   } catch {
     res.status(503).set('Content-Type', 'application/xml').send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
   }
