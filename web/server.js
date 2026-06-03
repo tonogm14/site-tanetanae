@@ -106,12 +106,11 @@ function injectMeta(post, slug) {
   return html;
 }
 
-function fetchPost(slug) {
-  return new Promise(resolve => {
-    const url = `${API_URL}/posts/slug/${encodeURIComponent(slug)}`;
+function httpGet1(url, timeoutMs = 5000) {
+  return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? httpsGet : httpGet;
     try {
-      const req = lib(url, { timeout: 4000 }, res => {
+      const req = lib(url, { timeout: timeoutMs }, res => {
         if (res.statusCode !== 200) return resolve(null);
         let body = '';
         res.setEncoding('utf-8');
@@ -124,6 +123,44 @@ function fetchPost(slug) {
       resolve(null);
     }
   });
+}
+
+// Extrae datos de post directamente del WordPress REST API.
+// Fallback para cuando API_URL interno no está configurado.
+function mapWpPost(wp) {
+  if (!wp) return null;
+  const embedded   = wp._embedded || {};
+  const media      = embedded['wp:featuredmedia']?.[0];
+  const author     = embedded['author']?.[0];
+  const imgUrl     = media?.media_details?.sizes?.large?.source_url
+                  || media?.media_details?.sizes?.medium_large?.source_url
+                  || media?.source_url
+                  || null;
+  const excerpt = (wp.excerpt?.rendered || '')
+    .replace(/<[^>]+>/g, '').replace(/\[&hellip;\]/g, '…').trim();
+  return {
+    title:  (wp.title?.rendered || '').replace(/<[^>]+>/g, ''),
+    excerpt,
+    deck:   excerpt,
+    imgUrl,
+    author: author?.name || 'Tane Tanae',
+  };
+}
+
+async function fetchPost(slug) {
+  // 1. Intentar API interna (más rápida, datos ya mapeados)
+  const fromApi = await httpGet1(`${API_URL}/posts/slug/${encodeURIComponent(slug)}`, 4000);
+  if (fromApi?.title) return fromApi;
+
+  // 2. Fallback: WordPress REST API directo
+  const WP_API = `${WP_BASE}/wp-json/wp/v2`;
+  const wpArr  = await httpGet1(
+    `${WP_API}/posts?slug=${encodeURIComponent(slug)}&_embed=1&per_page=1`,
+    8000,
+  );
+  if (Array.isArray(wpArr) && wpArr.length) return mapWpPost(wpArr[0]);
+
+  return null;
 }
 
 const app = express();
