@@ -5,7 +5,8 @@
  * Env vars:
  *   PORT          Puerto donde escucha (Railway lo inyecta automáticamente)
  *   API_URL       URL interna del API Express. Ej: http://api.railway.internal:3002
- *                 Fallback: http://localhost:3002
+ *   WP_BASE       URL base de WordPress. Ej: https://cms.tanetanae.com
+ *                 Fallback: https://tanetanae.com (mismo dominio anterior de WP)
  *   VITE_SITE_URL URL pública del sitio. Ej: https://www.tanetanae.com
  */
 
@@ -20,6 +21,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST      = join(__dirname, 'dist');
 const PORT      = parseInt(process.env.PORT || '3000', 10);
 const API_URL   = (process.env.API_URL || 'http://localhost:3002').replace(/\/$/, '');
+const WP_BASE   = (process.env.WP_BASE  || 'https://tanetanae.com').replace(/\/$/, '');
 const SITE_URL  = (process.env.VITE_SITE_URL || 'https://www.tanetanae.com').replace(/\/$/, '');
 
 // index.html compilado — se lee una sola vez al arrancar
@@ -95,14 +97,15 @@ app.use(express.static(DIST, { index: false }));
 // Health check — Railway lo usa para saber que el servidor está listo
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-// Proxy de sitemaps XML — forwarded al API que los obtiene de WordPress.
-// Cubre /sitemap.xml, /sitemap_index.xml, /post-sitemap.xml, etc.
-function proxyXmlFromApi(apiPath) {
+// Obtiene un XML directamente de WordPress y reescribe las URLs de origen
+// (WP_BASE) a las del sitio público (SITE_URL) para que Google vea el dominio correcto.
+function fetchWpXml(wpPath) {
   return new Promise((resolve, reject) => {
-    const url = `${API_URL}${apiPath}`;
+    const url = `${WP_BASE}${wpPath}`;
     const lib = url.startsWith('https') ? httpsGet : httpGet;
-    const r = lib(url, { timeout: 10000 }, resp => {
+    const r = lib(url, { timeout: 12000 }, resp => {
       let b = '';
+      resp.setEncoding('utf-8');
       resp.on('data', d => b += d);
       resp.on('end', () => resolve({ status: resp.statusCode, body: b }));
     });
@@ -111,6 +114,14 @@ function proxyXmlFromApi(apiPath) {
   });
 }
 
+function rewriteXmlUrls(xml) {
+  // Reemplaza el origen de WP por el dominio público en todas las <loc>
+  return xml.replaceAll(WP_BASE, SITE_URL);
+}
+
+const XML_EMPTY = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>';
+
+// /sitemap.xml — primero intenta el archivo generado en build, luego WP directo
 app.get('/sitemap.xml', async (_req, res) => {
   const staticPath = join(DIST, 'sitemap.xml');
   if (existsSync(staticPath)) {
@@ -118,21 +129,20 @@ app.get('/sitemap.xml', async (_req, res) => {
     return res.send(readFileSync(staticPath, 'utf-8'));
   }
   try {
-    const { body } = await proxyXmlFromApi('/sitemap_index.xml');
-    res.set('Content-Type', 'application/xml; charset=utf-8');
-    return res.send(body);
+    const { body } = await fetchWpXml('/sitemap_index.xml');
+    res.set('Content-Type', 'application/xml; charset=utf-8').send(rewriteXmlUrls(body));
   } catch {
-    res.status(503).set('Content-Type', 'application/xml').send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
+    res.status(503).set('Content-Type', 'application/xml').send(XML_EMPTY);
   }
 });
 
-// /sitemap_index.xml, /post-sitemap.xml, /post-sitemap2.xml, etc.
+// /sitemap_index.xml, /post-sitemap.xml, /post-sitemap2.xml, /category-sitemap.xml …
 app.get(/^\/[\w][\w-]*\.xml$/, async (req, res) => {
   try {
-    const { status, body } = await proxyXmlFromApi(req.path);
-    res.status(status).set('Content-Type', 'application/xml; charset=utf-8').send(body);
+    const { status, body } = await fetchWpXml(req.path);
+    res.status(status).set('Content-Type', 'application/xml; charset=utf-8').send(rewriteXmlUrls(body));
   } catch {
-    res.status(503).set('Content-Type', 'application/xml').send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
+    res.status(503).set('Content-Type', 'application/xml').send(XML_EMPTY);
   }
 });
 
