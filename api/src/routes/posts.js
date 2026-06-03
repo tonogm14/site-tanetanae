@@ -94,9 +94,33 @@ async function getCategoryIdBySlug(slug) {
   }
 }
 
-// GET /posts?page=1&per_page=10&category=slug
+async function getAuthorIdBySlug(slug) {
+  try {
+    const { data } = await axios.get(`${WP_API}/users`, {
+      params: { slug, per_page: 1 },
+      timeout: 10000,
+    });
+    return data[0]?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getTagIdBySlug(slug) {
+  try {
+    const { data } = await axios.get(`${WP_API}/tags`, {
+      params: { slug, per_page: 1 },
+      timeout: 10000,
+    });
+    return data[0]?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+// GET /posts?page=1&per_page=10&category=slug&author=slug&tag=slug
 router.get('/', cacheMiddleware(120), async (req, res) => {
-  const { page = 1, per_page = 10, category } = req.query;
+  const { page = 1, per_page = 10, category, author, tag } = req.query;
   try {
     const params = {
       page,
@@ -111,14 +135,21 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
       const catId = await getCategoryIdBySlug(category);
       if (catId) params.categories = catId;
     }
+    if (author) {
+      const authorId = await getAuthorIdBySlug(author);
+      if (authorId) params.author = authorId;
+    }
+    if (tag) {
+      const tagId = await getTagIdBySlug(tag);
+      if (tagId) params.tags = tagId;
+    }
 
     const { data, headers } = await axios.get(`${WP_API}/posts`, { params, timeout: 15000 });
     const totalPages = parseInt(headers['x-wp-totalpages'] || '1', 10);
     const total = parseInt(headers['x-wp-total'] || data.length, 10);
     const posts = data.map(mapPost);
 
-    // Guardar en DB en background (solo página 1 sin filtro de categoría)
-    if (!category && parseInt(page, 10) === 1) {
+    if (!category && !author && !tag && parseInt(page, 10) === 1) {
       upsertPosts(posts).catch(() => {});
     }
 
@@ -127,14 +158,12 @@ router.get('/', cacheMiddleware(120), async (req, res) => {
     console.error('GET /posts error:', err.message);
     const pg = parseInt(page, 10) || 1;
     const limit = parseInt(per_page, 10) || 10;
-    // Fallback DB — home (sin categoría, página 1)
-    if (!category && pg === 1) {
+    if (!category && !author && !tag && pg === 1) {
       const cached = await getFallbackPosts(limit);
       if (cached.length) {
         return res.json({ posts: cached, total: cached.length, totalPages: 1, page: 1, fallback: true });
       }
     }
-    // Fallback DB — categoría (página 1): posts reales de la BD filtrados por catSlug
     if (category && pg === 1) {
       const cached = await getFallbackPostsByCategory(category, limit);
       return res.json({ posts: cached, total: cached.length, totalPages: cached.length ? 1 : 0, page: 1, fallback: true });

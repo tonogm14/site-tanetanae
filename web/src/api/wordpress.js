@@ -122,10 +122,12 @@ export async function fetchHome() {
 
 // ── Funciones de endpoints individuales ───────────────────
 
-export async function fetchPosts({ page = 1, perPage = 10, category } = {}) {
+export async function fetchPosts({ page = 1, perPage = 10, category, author, tag } = {}) {
   try {
     const params = { page, per_page: perPage };
     if (category) params.category = category;
+    if (author)   params.author   = author;
+    if (tag)      params.tag      = tag;
     const { data } = await client.get('/posts', { params });
     return {
       posts: data.posts || [],
@@ -133,8 +135,26 @@ export async function fetchPosts({ page = 1, perPage = 10, category } = {}) {
       totalPages: data.totalPages || 1,
     };
   } catch {
-    if (category) return { posts: [], total: 0, totalPages: 1 };
+    if (category || author || tag) return { posts: [], total: 0, totalPages: 1 };
     return { posts: MOCK_DATA.hero, total: 0, totalPages: 1 };
+  }
+}
+
+export async function fetchAuthor(slug) {
+  try {
+    const { data } = await client.get(`/authors/${slug}`);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchTag(slug) {
+  try {
+    const { data } = await client.get(`/tags/${slug}`);
+    return data;
+  } catch {
+    return null;
   }
 }
 

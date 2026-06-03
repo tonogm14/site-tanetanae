@@ -5,6 +5,8 @@ import CategoryPage from './pages/CategoryPage.jsx';
 import ArticlePage from './pages/ArticlePage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
 import AyerHoyPage from './pages/AyerHoyPage.jsx';
+import AuthorPage from './pages/AuthorPage.jsx';
+import TagPage from './pages/TagPage.jsx';
 import { trackPageView } from './analytics.js';
 
 function Analytics() {
@@ -37,10 +39,12 @@ export default function App() {
       <BrowserRouter>
         <Analytics />
         <Routes>
-          <Route path="/"                element={<HomePage     theme={theme} setTheme={toggleTheme} />} />
-          <Route path="/buscar"                             element={<SearchPage   theme={theme} setTheme={toggleTheme} />} />
+          <Route path="/"                                  element={<HomePage     theme={theme} setTheme={toggleTheme} />} />
+          <Route path="/buscar"                            element={<SearchPage   theme={theme} setTheme={toggleTheme} />} />
           <Route path="/tanetanae-noticias-de-ayer-y-hoy" element={<AyerHoyPage  theme={theme} setTheme={toggleTheme} />} />
           <Route path="/categoria/:slug"                   element={<CategoryPage theme={theme} setTheme={toggleTheme} />} />
+          <Route path="/author/:slug"                      element={<AuthorPage   theme={theme} setTheme={toggleTheme} />} />
+          <Route path="/tag/:slug"                         element={<TagPage      theme={theme} setTheme={toggleTheme} />} />
           <Route path="/:slug"                             element={<ArticlePage  theme={theme} setTheme={toggleTheme} />} />
           <Route path="*"                                  element={<Navigate to="/" replace />} />
         </Routes>

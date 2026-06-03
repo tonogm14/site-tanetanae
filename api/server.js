@@ -88,6 +88,7 @@ app.use('/posts', require('./src/routes/posts'));
 app.use('/categories', require('./src/routes/categories'));
 app.use('/search', require('./src/routes/search'));
 app.use('/tags', require('./src/routes/tags'));
+app.use('/authors', require('./src/routes/authors'));
 app.use('/banners', require('./src/routes/banners'));
 app.use('/comments', require('./src/routes/comments'));
 app.use('/recent', require('./src/routes/recent'));

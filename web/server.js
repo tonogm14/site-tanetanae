@@ -28,7 +28,7 @@ const SITE_URL  = (process.env.VITE_SITE_URL || 'https://www.tanetanae.com').rep
 const INDEX_HTML = readFileSync(join(DIST, 'index.html'), 'utf-8');
 
 // Rutas SPA que NO son slugs de artículo — no hacer fetch a la API
-const SPA_PREFIXES = new Set(['categoria', 'buscar', 'recientes', 'tendencias', 'videos', 'api']);
+const SPA_PREFIXES = new Set(['categoria', 'author', 'tag', 'buscar', 'recientes', 'tendencias', 'videos', 'api']);
 
 function esc(s) {
   return String(s || '')
