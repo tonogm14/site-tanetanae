@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { cacheMiddleware, registerRevalidator, setCache, deleteCache } = require('./src/middleware/cache');
+const { cache, cacheMiddleware, registerRevalidator, setCache, deleteCache } = require('./src/middleware/cache');
 const { initSchema, upsertPosts, getFallbackPosts, incrementOfflineViews, drainOfflineViews, getPostCount } = require('./src/db');
 
 const app = express();
@@ -448,6 +448,36 @@ app.get('/:name(\\w[\\w-]*\\.xml)', cacheMiddleware(3600), async (req, res) => {
   } catch {
     res.status(404).send('<!-- not found -->');
   }
+});
+
+// ── POST /cache/bust — invalidación inmediata al guardar en WordPress ─────────
+// WordPress llama esto desde save_post via wp_remote_post (non-blocking).
+// Requiere el mismo WEBHOOK_SECRET que /admin/seed.
+app.post('/cache/bust', async (req, res) => {
+  const secret   = process.env.WEBHOOK_SECRET;
+  const received = req.headers['x-webhook-secret'] || req.body?.secret || '';
+  if (secret && received !== secret) return res.status(403).json({ error: 'Forbidden' });
+
+  const { slug } = req.body || {};
+  if (!slug) return res.status(400).json({ error: 'slug requerido' });
+
+  const deleted = [];
+
+  // Post individual
+  deleteCache(`/posts/slug/${slug}`);
+  deleted.push(`/posts/slug/${slug}`);
+
+  // Listas y páginas que podrían incluir este post
+  const listPrefixes = ['/posts', '/home', '/hero', '/breaking', '/most-read', '/recent'];
+  for (const key of cache.keys()) {
+    if (listPrefixes.some(p => key === p || key.startsWith(p + '?'))) {
+      deleteCache(key);
+      deleted.push(key);
+    }
+  }
+
+  console.log(`Cache bust: ${deleted.length} keys para slug="${slug}"`);
+  res.json({ ok: true, deleted: deleted.length, slug });
 });
 
 // ── Health check ──────────────────────────────────────────
