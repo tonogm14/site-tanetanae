@@ -14,19 +14,45 @@ const TT_MULTI_SLOTS = [ 'home-sidebar-top', 'home-sidebar-bottom', 'articulo-si
 // ── Secciones ─────────────────────────────────────────────
 function tt_banner_sections() {
     return [
-        'hero'                => 'Home / Despues del Hero',
-        'mas-noticias'        => 'Home / Despues de Mas Noticias del dia',
-        'sucesos-deportes'    => 'Home / Despues de Sucesos y Deportes',
-        'fueron-noticias'     => 'Home / Despues de Fueron Noticias',
-        'indigena'            => 'Home / Despues de Pueblos del Delta',
-        'internacional'       => 'Home / Despues de Internacional',
-        'home-sidebar-top'    => 'Home Sidebar / Arriba (encima de Otras noticias)',
-        'videos'              => 'Home Sidebar / Despues de Videos',
-        'home-sidebar-bottom' => 'Home Sidebar / Abajo (debajo de Categorias)',
-        'articulo-cuerpo'     => 'Articulo / Despues del cuerpo',
-        'articulo-sidebar'    => 'Articulo + Categoria Sidebar',
-        'categoria-top'       => 'Categoria / Arriba de la pagina',
-        'categoria-bottom'    => 'Categoria / Abajo de la pagina',
+        'hero'                => 'Despues del Hero',
+        'mas-noticias'        => 'Despues de Mas Noticias del dia',
+        'sucesos-deportes'    => 'Despues de Sucesos y Deportes',
+        'fueron-noticias'     => 'Despues de Fueron Noticias',
+        'indigena'            => 'Despues de Pueblos del Delta',
+        'internacional'       => 'Despues de Internacional',
+        'home-sidebar-top'    => 'Arriba (encima de Otras noticias)',
+        'videos'              => 'Despues de Videos',
+        'home-sidebar-bottom' => 'Abajo (debajo de Categorias)',
+        'articulo-cuerpo'     => 'Despues del cuerpo del articulo',
+        'articulo-sidebar'    => 'Sidebar del articulo',
+        'categoria-top'       => 'Arriba de la pagina',
+        'categoria-bottom'    => 'Abajo de la pagina',
+    ];
+}
+
+// ── Tabs — agrupa las secciones ───────────────────────────
+function tt_banner_tabs() {
+    return [
+        'homepage'   => [
+            'label'   => 'Homepage',
+            'icon'    => 'dashicons-admin-home',
+            'slugs'   => [ 'hero', 'mas-noticias', 'sucesos-deportes', 'fueron-noticias', 'indigena', 'internacional' ],
+        ],
+        'sidebar'    => [
+            'label'   => 'Sidebar',
+            'icon'    => 'dashicons-layout',
+            'slugs'   => [ 'home-sidebar-top', 'videos', 'home-sidebar-bottom' ],
+        ],
+        'articulos'  => [
+            'label'   => 'Articulos',
+            'icon'    => 'dashicons-admin-post',
+            'slugs'   => [ 'articulo-cuerpo', 'articulo-sidebar' ],
+        ],
+        'categorias' => [
+            'label'   => 'Categorias',
+            'icon'    => 'dashicons-category',
+            'slugs'   => [ 'categoria-top', 'categoria-bottom' ],
+        ],
     ];
 }
 
@@ -40,6 +66,29 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 function tt_banners_js() {
     return <<<'JS'
 jQuery(function($) {
+    // ── Tabs ──────────────────────────────────────────────
+    function activateTab(tabId) {
+        $('.tt-nav-tab').removeClass('nav-tab-active');
+        $('.tt-tab-panel').hide();
+        $('.tt-nav-tab[data-tab="' + tabId + '"]').addClass('nav-tab-active');
+        $('#tt-panel-' + tabId).show();
+        location.hash = tabId;
+    }
+
+    $('.tt-nav-tab').on('click', function(e) {
+        e.preventDefault();
+        activateTab($(this).data('tab'));
+    });
+
+    // Activar tab desde hash o el primero
+    var hash = location.hash.replace('#', '');
+    var $first = $('.tt-nav-tab').first();
+    if (hash && $('.tt-nav-tab[data-tab="' + hash + '"]').length) {
+        activateTab(hash);
+    } else {
+        activateTab($first.data('tab'));
+    }
+
     var mediaFrame;
 
     // Abrir media picker
@@ -156,15 +205,174 @@ function tt_banners_save() {
     }
 }
 
+// ── Renderiza un slot (banner unico o multi) ──────────────
+function tt_render_slot( $slug, $label ) {
+    $sections = tt_banner_sections();
+    if ( ! array_key_exists( $slug, $sections ) ) return;
+
+    if ( in_array( $slug, TT_MULTI_SLOTS ) ) :
+        $items = get_option( "tt_banner_{$slug}", [] );
+        if ( ! is_array( $items ) ) $items = [];
+        $count = count( $items );
+    ?>
+    <div class="tt-multi-slot" data-slug="<?php echo esc_attr( $slug ); ?>">
+        <h3>
+            <span><?php echo esc_html( $label ); ?></span>
+            <span style="font-size:11px;color:#888;"><?php echo $count; ?> banner<?php echo $count !== 1 ? 's' : ''; ?></span>
+        </h3>
+
+        <?php foreach ( $items as $idx => $item ) :
+            $active = ! empty( $item['image_url'] ) && ! empty( $item['enabled'] );
+        ?>
+        <div class="tt-banner-item" style="margin-bottom:12px">
+            <div class="tt-banner-block">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <span style="font-size:12px;font-weight:600;color:#555">
+                        Banner #<?php echo $idx + 1; ?>
+                        <span class="tt-status <?php echo $active ? 'on' : 'off'; ?>" style="margin-left:8px">
+                            <?php echo $active ? 'Activo' : 'Inactivo'; ?>
+                        </span>
+                    </span>
+                    <button type="button" class="button tt-delete-item" style="color:#b32d2e;border-color:#b32d2e">Eliminar</button>
+                </div>
+
+                <div class="tt-banner-row">
+                    <label>Imagen</label>
+                    <div>
+                        <input type="url"
+                            name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][image_url]"
+                            value="<?php echo esc_attr( $item['image_url'] ); ?>"
+                            placeholder="https://..." class="tt-image-url">
+                        <div class="tt-preview">
+                            <?php if ( ! empty( $item['image_url'] ) ) : ?>
+                                <img src="<?php echo esc_url( $item['image_url'] ); ?>" style="max-height:80px;margin-top:8px;border-radius:4px;border:1px solid #ddd;display:block">
+                            <?php endif; ?>
+                        </div>
+                        <button type="button" class="button tt-upload-btn">Subir / Seleccionar imagen</button>
+                        <?php if ( ! empty( $item['image_url'] ) ) : ?>
+                        <button type="button" class="button tt-remove-btn">Quitar</button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="tt-banner-row">
+                    <label>Enlace</label>
+                    <input type="url"
+                        name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][link_url]"
+                        value="<?php echo esc_attr( $item['link_url'] ); ?>"
+                        placeholder="https://anunciante.com (opcional)">
+                </div>
+
+                <div class="tt-banner-row">
+                    <label>Opciones</label>
+                    <div class="tt-checks">
+                        <label>
+                            <input type="checkbox"
+                                name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][enabled]"
+                                value="1" <?php checked( $item['enabled'], 1 ); ?>> Mostrar
+                        </label>
+                        <label>
+                            <input type="checkbox"
+                                name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][new_tab]"
+                                value="1" <?php checked( $item['new_tab'], 1 ); ?>> Abrir en nueva pestana
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+
+        <button type="button" class="button tt-add-banner">+ Agregar banner</button>
+    </div>
+
+    <?php else :
+        $b = get_option( "tt_banner_{$slug}", [ 'image_url' => '', 'link_url' => '', 'enabled' => 0, 'new_tab' => 0 ] );
+        $active = ! empty( $b['image_url'] ) && ! empty( $b['enabled'] );
+    ?>
+    <div class="tt-section-label">
+        <h3>
+            <span><?php echo esc_html( $label ); ?></span>
+            <span class="tt-status <?php echo $active ? 'on' : 'off'; ?>">
+                <?php echo $active ? 'Activo' : 'Inactivo'; ?>
+            </span>
+        </h3>
+
+        <div class="tt-banner-row">
+            <label>Imagen</label>
+            <div>
+                <input type="url"
+                    name="banner[<?php echo esc_attr($slug); ?>][image_url]"
+                    value="<?php echo esc_attr( $b['image_url'] ); ?>"
+                    placeholder="https://..." class="tt-image-url">
+                <div class="tt-preview">
+                    <?php if ( ! empty( $b['image_url'] ) ) : ?>
+                        <img src="<?php echo esc_url( $b['image_url'] ); ?>" style="max-height:80px;margin-top:8px;border-radius:4px;border:1px solid #ddd;display:block">
+                    <?php endif; ?>
+                </div>
+                <button type="button" class="button tt-upload-btn">Subir / Seleccionar imagen</button>
+                <?php if ( ! empty( $b['image_url'] ) ) : ?>
+                <button type="button" class="button tt-remove-btn">Quitar</button>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="tt-banner-row">
+            <label>Enlace destino</label>
+            <input type="url"
+                name="banner[<?php echo esc_attr($slug); ?>][link_url]"
+                value="<?php echo esc_attr( $b['link_url'] ); ?>"
+                placeholder="https://anunciante.com (opcional)">
+        </div>
+
+        <div class="tt-banner-row">
+            <label>Opciones</label>
+            <div class="tt-checks">
+                <label>
+                    <input type="checkbox"
+                        name="banner[<?php echo esc_attr($slug); ?>][enabled]"
+                        value="1" <?php checked( $b['enabled'], 1 ); ?>> Mostrar
+                </label>
+                <label>
+                    <input type="checkbox"
+                        name="banner[<?php echo esc_attr($slug); ?>][new_tab]"
+                        value="1" <?php checked( $b['new_tab'], 1 ); ?>> Abrir en nueva pestana
+                </label>
+            </div>
+        </div>
+    </div>
+    <?php endif;
+}
+
+// ── Contar banners activos en un tab ──────────────────────
+function tt_count_active( $slugs ) {
+    $n = 0;
+    foreach ( $slugs as $slug ) {
+        if ( in_array( $slug, TT_MULTI_SLOTS ) ) {
+            $items = get_option( "tt_banner_{$slug}", [] );
+            if ( is_array( $items ) ) {
+                foreach ( $items as $item ) {
+                    if ( ! empty( $item['image_url'] ) && ! empty( $item['enabled'] ) ) $n++;
+                }
+            }
+        } else {
+            $b = get_option( "tt_banner_{$slug}", [] );
+            if ( ! empty( $b['image_url'] ) && ! empty( $b['enabled'] ) ) $n++;
+        }
+    }
+    return $n;
+}
+
 // ── Pagina de administracion ──────────────────────────────
 function tt_banners_page() {
     tt_banners_save();
-    $saved = isset( $_POST['tt_banners_nonce'] ) && wp_verify_nonce( $_POST['tt_banners_nonce'], 'tt_save_banners' );
+    $saved    = isset( $_POST['tt_banners_nonce'] ) && wp_verify_nonce( $_POST['tt_banners_nonce'], 'tt_save_banners' );
+    $tabs     = tt_banner_tabs();
+    $sections = tt_banner_sections();
     ?>
     <div class="wrap">
-        <h1 style="font-size:22px;margin-bottom:6px">Banners del sitio</h1>
-        <p style="color:#666;margin-bottom:20px;margin-top:0">
-            Sube una imagen directamente o pega una URL. Deja el campo de imagen vacio para ocultar el banner.
+        <h1 style="font-size:22px;margin-bottom:4px">Banners del sitio</h1>
+        <p style="color:#666;margin-bottom:16px;margin-top:0">
+            Sube una imagen o pega una URL. Deja el campo vacio para ocultar el banner.
         </p>
 
         <?php if ( $saved ) : ?>
@@ -172,8 +380,18 @@ function tt_banners_page() {
         <?php endif; ?>
 
         <style>
+            /* Tabs */
+            .tt-nav-tab-wrapper { margin-bottom:0; border-bottom:1px solid #c3c4c7; }
+            .tt-nav-tab { display:inline-flex; align-items:center; gap:6px; }
+            .tt-badge { display:inline-flex; align-items:center; justify-content:center;
+                        min-width:18px; height:18px; padding:0 5px; border-radius:9px;
+                        font-size:11px; font-weight:700; line-height:1;
+                        background:#2271b1; color:#fff; }
+            .tt-badge.empty { background:#c3c4c7; color:#555; }
+            /* Tab panels */
+            .tt-tab-panel { display:none; padding-top:20px; max-width:820px; }
+            /* Slots */
             .tt-banner-block { background:#fff; border:1px solid #ddd; border-radius:8px; padding:18px 20px; margin-bottom:8px; }
-            .tt-banner-block h3 { margin:0 0 14px; font-size:13px; font-weight:600; color:#1d2327; display:flex; align-items:center; justify-content:space-between; }
             .tt-status { font-size:11px; font-weight:600; padding:2px 10px; border-radius:20px; }
             .tt-status.on  { background:#d4edda; color:#155724; }
             .tt-status.off { background:#f0f0f0; color:#888; }
@@ -185,158 +403,47 @@ function tt_banners_page() {
             .tt-checks { display:flex; gap:24px; padding-top:4px; }
             .tt-checks label { font-size:13px; display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:400; }
             .tt-multi-slot { background:#f6f7f7; border:1px solid #ddd; border-radius:8px; padding:16px; margin-bottom:16px; }
-            .tt-multi-slot > h3 { font-size:13px; font-weight:600; margin:0 0 14px; color:#1d2327; }
+            .tt-multi-slot > h3 { font-size:13px; font-weight:600; margin:0 0 14px; color:#1d2327; display:flex; align-items:center; justify-content:space-between; }
             .tt-add-banner { margin-top:4px; }
             .tt-section-label { background:#fff; border:1px solid #ddd; border-radius:8px; padding:14px 18px; margin-bottom:16px; }
             .tt-section-label h3 { margin:0 0 14px; font-size:13px; font-weight:600; color:#1d2327; display:flex; align-items:center; justify-content:space-between; }
         </style>
 
-        <form method="post" style="max-width:820px">
+        <form method="post">
             <?php wp_nonce_field( 'tt_save_banners', 'tt_banners_nonce' ); ?>
 
-            <?php foreach ( tt_banner_sections() as $slug => $label ) :
-                $sid = 'tt_' . str_replace( '-', '_', $slug );
-
-                if ( in_array( $slug, TT_MULTI_SLOTS ) ) :
-                    // ── Multi-banner slot ────────────────────
-                    $items = get_option( "tt_banner_{$slug}", [] );
-                    if ( ! is_array( $items ) ) $items = [];
-                    $count = count( $items );
+            <!-- Tabs nav -->
+            <nav class="nav-tab-wrapper tt-nav-tab-wrapper">
+                <?php foreach ( $tabs as $tab_id => $tab ) :
+                    $active_count = tt_count_active( $tab['slugs'] );
                 ?>
-                <div class="tt-multi-slot" data-slug="<?php echo esc_attr( $slug ); ?>">
-                    <h3>
-                        <span><?php echo esc_html( $label ); ?></span>
-                        <span style="font-size:11px;color:#888;"><?php echo $count; ?> banner<?php echo $count !== 1 ? 's' : ''; ?></span>
-                    </h3>
+                <a href="#<?php echo esc_attr( $tab_id ); ?>"
+                   class="nav-tab tt-nav-tab"
+                   data-tab="<?php echo esc_attr( $tab_id ); ?>">
+                    <span class="dashicons <?php echo esc_attr( $tab['icon'] ); ?>" style="font-size:16px;width:16px;height:16px;margin-top:1px"></span>
+                    <?php echo esc_html( $tab['label'] ); ?>
+                    <span class="tt-badge <?php echo $active_count ? '' : 'empty'; ?>">
+                        <?php echo $active_count; ?>
+                    </span>
+                </a>
+                <?php endforeach; ?>
+            </nav>
 
-                    <?php foreach ( $items as $idx => $item ) :
-                        $active = ! empty( $item['image_url'] ) && ! empty( $item['enabled'] );
-                    ?>
-                    <div class="tt-banner-item" style="margin-bottom:12px">
-                        <div class="tt-banner-block">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                                <span style="font-size:12px;font-weight:600;color:#555">
-                                    Banner #<?php echo $idx + 1; ?>
-                                    <span class="tt-status <?php echo $active ? 'on' : 'off'; ?>" style="margin-left:8px">
-                                        <?php echo $active ? 'Activo' : 'Inactivo'; ?>
-                                    </span>
-                                </span>
-                                <button type="button" class="button tt-delete-item" style="color:#b32d2e;border-color:#b32d2e">Eliminar</button>
-                            </div>
+            <!-- Tab panels -->
+            <?php foreach ( $tabs as $tab_id => $tab ) : ?>
+            <div class="tt-tab-panel" id="tt-panel-<?php echo esc_attr( $tab_id ); ?>">
+                <?php foreach ( $tab['slugs'] as $slug ) :
+                    if ( isset( $sections[ $slug ] ) ) :
+                        tt_render_slot( $slug, $sections[ $slug ] );
+                    endif;
+                endforeach; ?>
 
-                            <div class="tt-banner-row">
-                                <label>Imagen</label>
-                                <div>
-                                    <input type="url"
-                                        name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][image_url]"
-                                        value="<?php echo esc_attr( $item['image_url'] ); ?>"
-                                        placeholder="https://..."
-                                        class="tt-image-url">
-                                    <div class="tt-preview">
-                                        <?php if ( ! empty( $item['image_url'] ) ) : ?>
-                                            <img src="<?php echo esc_url( $item['image_url'] ); ?>" style="max-height:80px;margin-top:8px;border-radius:4px;border:1px solid #ddd;display:block">
-                                        <?php endif; ?>
-                                    </div>
-                                    <button type="button" class="button tt-upload-btn">Subir / Seleccionar imagen</button>
-                                    <?php if ( ! empty( $item['image_url'] ) ) : ?>
-                                    <button type="button" class="button tt-remove-btn">Quitar</button>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-
-                            <div class="tt-banner-row">
-                                <label>Enlace</label>
-                                <input type="url"
-                                    name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][link_url]"
-                                    value="<?php echo esc_attr( $item['link_url'] ); ?>"
-                                    placeholder="https://anunciante.com (opcional)">
-                            </div>
-
-                            <div class="tt-banner-row">
-                                <label>Opciones</label>
-                                <div class="tt-checks">
-                                    <label>
-                                        <input type="checkbox"
-                                            name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][enabled]"
-                                            value="1" <?php checked( $item['enabled'], 1 ); ?>> Mostrar
-                                    </label>
-                                    <label>
-                                        <input type="checkbox"
-                                            name="banner[<?php echo esc_attr($slug); ?>][<?php echo $idx; ?>][new_tab]"
-                                            value="1" <?php checked( $item['new_tab'], 1 ); ?>> Abrir en nueva pestana
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-
-                    <button type="button" class="button tt-add-banner">+ Agregar banner</button>
+                <div style="margin-top:8px">
+                    <?php submit_button( 'Guardar banners', 'primary large', 'submit', false ); ?>
                 </div>
-
-                <?php else :
-                    // ── Banner unico ─────────────────────────
-                    $b = get_option( "tt_banner_{$slug}", [ 'image_url' => '', 'link_url' => '', 'enabled' => 0, 'new_tab' => 0 ] );
-                    $active = ! empty( $b['image_url'] ) && ! empty( $b['enabled'] );
-                ?>
-                <div class="tt-section-label">
-                    <h3>
-                        <span><?php echo esc_html( $label ); ?></span>
-                        <span class="tt-status <?php echo $active ? 'on' : 'off'; ?>">
-                            <?php echo $active ? 'Activo' : 'Inactivo'; ?>
-                        </span>
-                    </h3>
-
-                    <div class="tt-banner-row">
-                        <label>Imagen</label>
-                        <div>
-                            <input type="url" id="<?php echo $sid; ?>_img"
-                                name="banner[<?php echo esc_attr($slug); ?>][image_url]"
-                                value="<?php echo esc_attr( $b['image_url'] ); ?>"
-                                placeholder="https://..." class="tt-image-url">
-                            <div class="tt-preview">
-                                <?php if ( ! empty( $b['image_url'] ) ) : ?>
-                                    <img src="<?php echo esc_url( $b['image_url'] ); ?>" style="max-height:80px;margin-top:8px;border-radius:4px;border:1px solid #ddd;display:block">
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="button tt-upload-btn">Subir / Seleccionar imagen</button>
-                            <?php if ( ! empty( $b['image_url'] ) ) : ?>
-                            <button type="button" class="button tt-remove-btn">Quitar</button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <div class="tt-banner-row">
-                        <label>Enlace destino</label>
-                        <input type="url"
-                            name="banner[<?php echo esc_attr($slug); ?>][link_url]"
-                            value="<?php echo esc_attr( $b['link_url'] ); ?>"
-                            placeholder="https://anunciante.com (opcional)">
-                    </div>
-
-                    <div class="tt-banner-row">
-                        <label>Opciones</label>
-                        <div class="tt-checks">
-                            <label>
-                                <input type="checkbox"
-                                    name="banner[<?php echo esc_attr($slug); ?>][enabled]"
-                                    value="1" <?php checked( $b['enabled'], 1 ); ?>> Mostrar
-                            </label>
-                            <label>
-                                <input type="checkbox"
-                                    name="banner[<?php echo esc_attr($slug); ?>][new_tab]"
-                                    value="1" <?php checked( $b['new_tab'], 1 ); ?>> Abrir en nueva pestana
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
+            </div>
             <?php endforeach; ?>
 
-            <div style="margin-top:8px">
-                <?php submit_button( 'Guardar todos los banners', 'primary large', 'submit', false ); ?>
-            </div>
         </form>
     </div>
     <?php
