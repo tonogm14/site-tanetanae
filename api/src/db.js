@@ -27,6 +27,7 @@ async function initSchema() {
         slug           TEXT NOT NULL,
         data           JSONB NOT NULL,
         views_offline  INTEGER NOT NULL DEFAULT 0,
+        view_count     INTEGER NOT NULL DEFAULT 0,
         fetched_at     TIMESTAMPTZ DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS posts_cache_fetched ON posts_cache (fetched_at DESC);
@@ -41,10 +42,16 @@ async function initSchema() {
       );
       CREATE INDEX IF NOT EXISTS comments_post_idx ON comments (post_id, created_at DESC);
     `);
-    // Migración para instancias que ya tenían la tabla sin la columna
-    await db.query(
-      'ALTER TABLE posts_cache ADD COLUMN IF NOT EXISTS views_offline INTEGER NOT NULL DEFAULT 0'
-    ).catch(() => {});
+    // Columnas para instancias que ya existían sin ellas
+    await db.query('ALTER TABLE posts_cache ADD COLUMN IF NOT EXISTS views_offline INTEGER NOT NULL DEFAULT 0').catch(() => {});
+    await db.query('ALTER TABLE posts_cache ADD COLUMN IF NOT EXISTS view_count INTEGER NOT NULL DEFAULT 0').catch(() => {});
+    // Migración única: inicializar view_count desde views_offline + vistas de WP
+    await db.query(`
+      UPDATE posts_cache
+      SET view_count = COALESCE((data->>'views')::int, 0) + COALESCE(views_offline, 0)
+      WHERE view_count = 0
+        AND (COALESCE((data->>'views')::int, 0) + COALESCE(views_offline, 0)) > 0
+    `).catch(() => {});
     console.log('DB: esquema listo');
   } catch (e) {
     console.warn('DB: error al inicializar esquema:', e.message);
@@ -60,14 +67,18 @@ async function upsertPosts(posts) {
     await client.query('BEGIN');
     for (const p of posts) {
       if (!p?.id || !p?.slug) continue;
+      const wpViews = parseInt(p.views || 0, 10);
       await client.query(
-        `INSERT INTO posts_cache (id, slug, data, fetched_at)
-         VALUES ($1, $2, $3::jsonb, now())
+        // En INSERT: inicializar view_count desde WP si PostgreSQL aún tiene 0
+        // En UPDATE: NO sobreescribir view_count — PostgreSQL es la fuente de verdad
+        `INSERT INTO posts_cache (id, slug, data, view_count, fetched_at)
+         VALUES ($1, $2, $3::jsonb, $4, now())
          ON CONFLICT (id) DO UPDATE SET
            slug       = EXCLUDED.slug,
            data       = EXCLUDED.data,
+           view_count = GREATEST(posts_cache.view_count, EXCLUDED.view_count),
            fetched_at = now()`,
-        [p.id, p.slug, JSON.stringify(p)]
+        [p.id, p.slug, JSON.stringify(p), wpViews]
       );
     }
     // Mantener máximo 100 notas
@@ -86,47 +97,23 @@ async function upsertPosts(posts) {
   }
 }
 
-// Incrementa visitas offline y devuelve el total (WP views + offline).
-async function incrementOfflineViews(postId) {
+// Incrementa view_count atómicamente y devuelve el nuevo total.
+// PostgreSQL es la fuente de verdad; WP se sincroniza en background.
+async function incrementViewCount(postId) {
   const db = pool();
   if (!db) return null;
   try {
     const { rows } = await db.query(
       `UPDATE posts_cache
-         SET views_offline = views_offline + 1
+         SET view_count = view_count + 1
        WHERE id = $1
-       RETURNING views_offline,
-                 COALESCE((data->>'views')::int, 0) AS wp_views`,
+       RETURNING view_count`,
       [String(postId)]
     );
-    if (!rows.length) return null;
-    return rows[0].wp_views + rows[0].views_offline;
+    return rows[0]?.view_count ?? null;
   } catch (e) {
-    console.warn('DB: error en incrementOfflineViews:', e.message);
+    console.warn('DB: error en incrementViewCount:', e.message);
     return null;
-  }
-}
-
-// Lee y resetea a 0 las vistas offline pendientes de un post.
-// Devuelve cuántas había (para sincronizarlas con WP).
-async function drainOfflineViews(postId) {
-  const db = pool();
-  if (!db) return 0;
-  try {
-    const { rows } = await db.query(
-      `WITH prev AS (
-         SELECT views_offline FROM posts_cache WHERE id = $1
-       )
-       UPDATE posts_cache
-         SET views_offline = 0
-       WHERE id = $1
-       RETURNING (SELECT views_offline FROM prev) AS drained`,
-      [String(postId)]
-    );
-    return rows[0]?.drained || 0;
-  } catch (e) {
-    console.warn('DB: error en drainOfflineViews:', e.message);
-    return 0;
   }
 }
 
@@ -164,20 +151,20 @@ async function getFallbackPosts(limit = 12) {
   }
 }
 
-// Devuelve una nota por slug desde la caché (incluye vistas offline en el total).
+// Devuelve una nota por slug desde la caché.
 // Retorna { post, fetchedAt } para que el llamador pueda decidir si refrescar.
 async function getFallbackPost(slug) {
   const db = pool();
   if (!db) return null;
   try {
     const { rows } = await db.query(
-      'SELECT data, views_offline, fetched_at FROM posts_cache WHERE slug = $1 LIMIT 1',
+      'SELECT data, view_count, fetched_at FROM posts_cache WHERE slug = $1 LIMIT 1',
       [slug]
     );
     if (!rows.length) return null;
     const post = { ...rows[0].data };
-    const offline = rows[0].views_offline || 0;
-    if (offline > 0) post.views = (post.views || 0) + offline;
+    // view_count en PostgreSQL es la fuente de verdad — sobreescribe el valor de WP
+    if (rows[0].view_count > 0) post.views = rows[0].view_count;
     return { post, fetchedAt: rows[0].fetched_at };
   } catch (e) {
     console.warn('DB: error en fallback de post:', e.message);
@@ -239,8 +226,7 @@ async function getComments(postId, { page = 1, limit = 5 } = {}) {
 module.exports = {
   initSchema,
   upsertPosts,
-  incrementOfflineViews,
-  drainOfflineViews,
+  incrementViewCount,
   getFallbackPosts,
   getFallbackPostsByCategory,
   getFallbackPost,

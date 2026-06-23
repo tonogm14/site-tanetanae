@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { cache, cacheMiddleware, registerRevalidator, setCache, deleteCache } = require('./src/middleware/cache');
-const { initSchema, upsertPosts, getFallbackPosts, incrementOfflineViews, drainOfflineViews, getPostCount } = require('./src/db');
+const { initSchema, upsertPosts, getFallbackPosts, incrementViewCount, getPostCount } = require('./src/db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -47,35 +47,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type'],
 }));
 
-// ── Rate limiter en memoria (sin dependencias) ────────────
-// Usa ip + postId para que cada artículo tenga su propio cupo.
-const viewsRateMap = new Map(); // key: `${ip}:${id}` → { count, resetAt }
-const VIEWS_WINDOW_MS  = 60 * 60 * 1000; // 1 hora
-const VIEWS_MAX        = 3;               // máx 3 veces por IP/artículo por hora
-
-function viewsRateLimit(req, res, next) {
-  const ip  = req.ip || req.socket.remoteAddress || 'unknown';
-  const key = `${ip}:${req.params.id}`;
-  const now = Date.now();
-  const entry = viewsRateMap.get(key);
-
-  if (entry && now < entry.resetAt) {
-    if (entry.count >= VIEWS_MAX) {
-      return res.status(429).json({ error: 'Too many requests', views: 0 });
-    }
-    entry.count++;
-  } else {
-    viewsRateMap.set(key, { count: 1, resetAt: now + VIEWS_WINDOW_MS });
-  }
-
-  // Limpiar entradas expiradas cada ~500 requests para no crecer sin límite
-  if (viewsRateMap.size > 500) {
-    for (const [k, v] of viewsRateMap) {
-      if (now >= v.resetAt) viewsRateMap.delete(k);
-    }
-  }
-  next();
-}
 
 app.use(express.json());
 app.use((req, _res, next) => {
@@ -389,32 +360,19 @@ app.post('/webhook/post', express.json(), (req, res, next) => {
   }
 });
 
-// ── POST /views/:id — incremento atómico via WordPress ───────────────────────
-app.post('/views/:id', viewsRateLimit, async (req, res) => {
+// ── POST /views/:id — PostgreSQL es la fuente de verdad ──────────────────────
+// El sitio no depende de WP para contar o mostrar vistas.
+// WP se actualiza en background para mantener contador_visitas en sync.
+app.post('/views/:id', async (req, res) => {
   const postId = req.params.id;
-  try {
-    const { data } = await axios.post(
-      `${WP_BASE}/wp-json/tt/v1/view/${postId}`,
-      {},
-      { timeout: 5000 }
-    );
-    // WP respondió — sincronizar vistas offline pendientes
-    drainOfflineViews(postId).then(async pending => {
-      if (pending <= 0) return;
-      // Enviar las vistas acumuladas offline como requests adicionales a WP
-      const batch = Math.min(pending, 20); // máximo 20 para no saturar WP
-      for (let i = 0; i < batch; i++) {
-        await axios.post(`${WP_BASE}/wp-json/tt/v1/view/${postId}`, {}, { timeout: 4000 })
-          .catch(() => {});
-      }
-      console.log(`DB: sincronizadas ${batch} vistas offline del post ${postId}`);
-    }).catch(() => {});
-    res.json(data);
-  } catch {
-    // WP no disponible — registrar visita en DB y devolver total estimado
-    const total = await incrementOfflineViews(postId);
-    res.json({ views: total ?? 0 });
-  }
+
+  // 1. Incrementar en PostgreSQL y responder de inmediato
+  const count = await incrementViewCount(postId);
+  res.json({ views: count ?? 0 });
+
+  // 2. Mantener WP en sync (fire and forget — fallo silencioso)
+  axios.post(`${WP_BASE}/wp-json/tt/v1/view/${postId}`, {}, { timeout: 5000 })
+    .catch(() => {});
 });
 
 // ── Sitemap proxy — forwards Yoast WP sitemaps (auto-updates with every new post) ──

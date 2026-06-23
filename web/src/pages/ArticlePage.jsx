@@ -149,10 +149,14 @@ export default function ArticlePage({ theme, setTheme }) {
       if (mostReadResult.status === 'fulfilled') setMostRead(mostReadResult.value);
       if (relatedResult.status === 'fulfilled') setRelated(relatedResult.value.posts);
       setLoading(false);
-      // Registrar visita; actualizar conteo mostrado con el valor fresco de WP
-      registerView(art.id).then(views => {
-        if (views != null) setArticle(prev => prev ? { ...prev, views } : prev);
-      });
+      // Una vista por sesión por artículo (sessionStorage se borra al cerrar el tab)
+      const sessionKey = `tt_viewed_${art.id}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        sessionStorage.setItem(sessionKey, '1');
+        registerView(art.id).then(views => {
+          if (views != null) setArticle(prev => prev ? { ...prev, views } : prev);
+        });
+      }
     });
 
     return () => { cancelled = true; };
