@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { cache, cacheMiddleware, registerRevalidator, setCache, deleteCache } = require('./src/middleware/cache');
-const { initSchema, upsertPosts, getFallbackPosts, incrementViewCount, getPostCount } = require('./src/db');
+const { initSchema, upsertPosts, getFallbackPosts, incrementViewCount, setViewCount, getPostCount } = require('./src/db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -361,18 +361,34 @@ app.post('/webhook/post', express.json(), (req, res, next) => {
 });
 
 // ── POST /views/:id — PostgreSQL es la fuente de verdad ──────────────────────
-// El sitio no depende de WP para contar o mostrar vistas.
-// WP se actualiza en background para mantener contador_visitas en sync.
+// El sitio no depende de WP para mostrar vistas.
+// En la primera visita de cada post, trae el historial real de WP para no perder datos.
 app.post('/views/:id', async (req, res) => {
   const postId = req.params.id;
+  let count = await incrementViewCount(postId);
 
-  // 1. Incrementar en PostgreSQL y responder de inmediato
-  const count = await incrementViewCount(postId);
+  if (count === 1 || count === null) {
+    // Primera visita en nuestro sistema — sincronizar con WP para recuperar historial
+    try {
+      const { data } = await axios.post(
+        `${WP_BASE}/wp-json/tt/v1/view/${postId}`, {}, { timeout: 5000 }
+      );
+      const wpViews = data?.views ?? 0;
+      if (wpViews > (count ?? 0)) {
+        // WP tiene el historial real — inicializar nuestra DB con ese valor
+        await setViewCount(postId, wpViews);
+        count = wpViews;
+      }
+    } catch {
+      // WP no disponible — nuestro conteo local es suficiente
+    }
+  } else {
+    // Vista normal — mantener WP en sync en background (sin bloquear respuesta)
+    axios.post(`${WP_BASE}/wp-json/tt/v1/view/${postId}`, {}, { timeout: 5000 })
+      .catch(() => {});
+  }
+
   res.json({ views: count ?? 0 });
-
-  // 2. Mantener WP en sync (fire and forget — fallo silencioso)
-  axios.post(`${WP_BASE}/wp-json/tt/v1/view/${postId}`, {}, { timeout: 5000 })
-    .catch(() => {});
 });
 
 // ── Sitemap proxy — forwards Yoast WP sitemaps (auto-updates with every new post) ──

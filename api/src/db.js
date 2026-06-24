@@ -117,6 +117,21 @@ async function incrementViewCount(postId) {
   }
 }
 
+// Fuerza view_count al valor dado si es mayor al actual.
+// Usado para inicializar desde el historial real de WP en la primera visita.
+async function setViewCount(postId, count) {
+  const db = pool();
+  if (!db) return;
+  try {
+    await db.query(
+      'UPDATE posts_cache SET view_count = GREATEST(view_count, $2) WHERE id = $1',
+      [String(postId), count]
+    );
+  } catch (e) {
+    console.warn('DB: error en setViewCount:', e.message);
+  }
+}
+
 // Devuelve hasta N notas de una categoría específica desde la caché.
 async function getFallbackPostsByCategory(catSlug, limit = 12) {
   const db = pool();
@@ -227,6 +242,7 @@ module.exports = {
   initSchema,
   upsertPosts,
   incrementViewCount,
+  setViewCount,
   getFallbackPosts,
   getFallbackPostsByCategory,
   getFallbackPost,
