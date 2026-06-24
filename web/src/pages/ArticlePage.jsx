@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import UtilityStrip from '../components/UtilityStrip.jsx';
 import Header from '../components/Header.jsx';
@@ -50,6 +50,20 @@ function extractKeyPoints(html) {
       return m ? m[0].trim() : p.slice(0, 160) + (p.length > 160 ? '…' : '');
     })
     .slice(0, 2);
+}
+
+// Carga un script externo una sola vez; si ya existe, llama el callback inmediatamente.
+function loadEmbedScript(src, onLoad) {
+  if (document.querySelector(`script[src="${src}"]`)) {
+    onLoad?.();
+    return;
+  }
+  const s = document.createElement('script');
+  s.src = src;
+  s.async = true;
+  s.charset = 'utf-8';
+  if (onLoad) s.onload = onLoad;
+  document.body.appendChild(s);
 }
 
 function buildShareUrls(title, url) {
@@ -255,6 +269,43 @@ export default function ArticlePage({ theme, setTheme }) {
       });
     }, 50);
     return () => clearTimeout(timer);
+  }, [a.content]);
+
+  // Activar embeds de redes sociales (Instagram, Twitter/X, TikTok, Facebook)
+  // React no ejecuta <script> inyectados por dangerouslySetInnerHTML — los cargamos manualmente.
+  useEffect(() => {
+    if (!a.content) return;
+    const body = document.querySelector('.tt-article-body');
+    if (!body) return;
+
+    // Instagram
+    if (body.querySelector('.instagram-media, [data-instgrm-permalink], [data-instgrm-version]')) {
+      loadEmbedScript('https://www.instagram.com/embed.js', () => {
+        window.instgrm?.Embeds?.process?.();
+      });
+      window.instgrm?.Embeds?.process?.();
+    }
+
+    // Twitter / X
+    if (body.querySelector('.twitter-tweet, .twitter-timeline')) {
+      loadEmbedScript('https://platform.twitter.com/widgets.js', () => {
+        window.twttr?.widgets?.load?.(body);
+      });
+      window.twttr?.widgets?.load?.(body);
+    }
+
+    // TikTok
+    if (body.querySelector('.tiktok-embed')) {
+      loadEmbedScript('https://www.tiktok.com/embed.js');
+    }
+
+    // Facebook
+    if (body.querySelector('.fb-post, .fb-video, .fb-reel')) {
+      loadEmbedScript('https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v18.0', () => {
+        window.FB?.XFBML?.parse?.(body);
+      });
+      window.FB?.XFBML?.parse?.(body);
+    }
   }, [a.content]);
 
   if (notFound) {

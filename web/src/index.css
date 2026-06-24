@@ -481,6 +481,27 @@ body {
   border-radius: var(--tt-r-md);
 }
 
+/* Embeds de redes sociales — Instagram, Twitter/X, TikTok, Facebook */
+.tt-article-body .instagram-media,
+.tt-article-body .twitter-tweet,
+.tt-article-body .tiktok-embed,
+.tt-article-body .fb-post,
+.tt-article-body .fb-video {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+/* Centrar el iframe que Instagram/Twitter inyectan */
+.tt-article-body .instagram-media iframe,
+.tt-article-body .twitter-tweet iframe {
+  max-width: 100% !important;
+}
+/* TikTok usa section > blockquote */
+.tt-article-body .tiktok-embed section {
+  max-width: 100% !important;
+}
+
 .tt-article-body figure {
   margin: 28px 0;
 }
